@@ -1,0 +1,120 @@
+digraph {
+    node [colorscheme=dark28]
+    edge [colorscheme=dark28]
+
+    {
+        // Definitions
+        {
+            rank=same
+            A [label="concrete node"];
+            B [label="abstract leaf", style=dashed, shape=invhouse];
+        }
+        {
+            rank=same
+            C [label="abstract node", style=dashed];
+            D [label="concrete leaf", shape=invhouse, color=1];
+        }
+        A -> D [color=1, label="decleration"];
+        A -> C [color=2, label="property"];
+        A -> B [color=3, style=dashed, label="pointer"];
+    }
+
+    // Position arror definitions
+    // "scope" -> A [style=invis];
+
+    {
+        // Abstract nodes
+        node [style=dashed];
+        "ordered property";
+        "unordered property";
+        "statement scope";
+        "namespace scope";
+        "class scope";
+        "function scope";
+        "class parents";
+        "for" [shape=invhouse]; // See leafs
+    }
+
+    {
+        // Declerations
+        node [color=1]; // decleration
+
+        "namespace";
+        "function";
+        "class";
+        "data";
+    }
+
+    {
+        // Position [un]ordered properties
+        rank = same;
+        edge [style=invis];
+        "ordered property" -> "unordered property";
+    }
+
+    {
+        // leafs
+        node [shape=invhouse];
+        "expression";
+        "data";
+        "type";
+        "identifier";
+        "alias";
+        // For some reason this won't work here
+        "for";
+
+    }
+
+    "recursive scope" [label="scope"];
+
+    "scope" -> "ordered property" [color=2]; // property
+    "scope" -> "unordered property" [color=2]; // property
+
+    "class" -> "identifier" [color=2]; // property
+    "class" -> "class parents" [color=2]; // property
+    "class" -> "class scope" [color=2]; // property
+    "class scope" -> "recursive scope" [color=2]; // property
+    "class parents" -> "class" [color=3, style=dashed]; // pointer
+
+    "function" -> "identifier" [color=2]; // property
+    "function" -> "type" [color=2]; // property
+    "function" -> "function scope" [color=2]; // property
+    "function scope" -> "recursive scope" [color=2]; // property
+
+
+    "ordered property" -> "data" [color=1]; // decleration
+    "ordered property" -> "namespace" [color=1]; // declaration
+    "ordered property" -> "alias" [color=2]; // property
+    "ordered property" -> "statement" [color=2]; // property
+    "ordered property" -> "expression" [color=2]; // property
+
+    "unordered property" -> "function" [color=1]; // decleration
+    "unordered property" -> "class" [color=1]; // decleration
+
+    "namespace" -> "identifier" [color=2] // property
+    "namespace" -> "namespace scope" [color=2]; // property
+    "namespace scope" -> "recursive scope" [color=2]; // property
+
+    "statement" -> "statement scope" [color=2]; // property
+    "statement scope" -> "recursive scope" [color=2]; // property
+
+    "alias" -> "identifier" [color=2]; // property
+    "alias" -> "for" [color=2]; // property
+
+    "for" -> "type" [color=2]; // property
+    "for" -> "namespace" [color=3, style=dashed]; // pointer
+    "for" -> "identifier" [color=3, style=dashed]; // pointer
+
+    "expression" -> "function" [color=3, style=dashed]; // pointer
+    "expression" -> "data" [color=3, style=dashed]; // pointer
+    "expression" -> "expression" [color=2]; // property
+    "expression" -> "type" [color=2] // property
+
+    "type" -> "type" [color=2]; // property
+    "type" -> "identifier" [color=2]; // property
+    "type" -> "class" [color=3, style=dashed]; // pointer
+
+    "data" -> "identifier" [color=2]; // property
+    "data" -> "type" [color=2]; // property
+
+}

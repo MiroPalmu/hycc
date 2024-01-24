@@ -2,11 +2,18 @@ Welcome to template documentation!
 ==================================
 
 .. toctree::
-   :maxdepth: 2
-   :caption: Contents:
+    :maxdepth: 2
+    :caption: Contents:
 
-   developing_guidelines
-   doxygen_index
+    tokenizer
+    types
+    operators
+    expressions
+    implicit_operators
+    parser
+    name_lookup
+    developing_guidelines
+    doxygen_index
 
 
 Index and search
