@@ -2,7 +2,7 @@
 
 #include <string>
 
-#include "sstd.hpp"
+#include "hycc/sstd.hpp"
 
 int main() {
     using namespace boost::ut;

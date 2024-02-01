@@ -1,5 +1,7 @@
 #pragma once
 
+#include "hycc/sstd.hpp"
+
 namespace hycc {
 
 enum class char_class_enum {
