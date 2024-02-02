@@ -2,9 +2,13 @@
 
 #include <concepts>
 #include <cstddef>
+#include <functional>
+#include <optional>
+#include <stdexcept>
 #include <tuple>
 #include <type_traits>
 #include <utility>
+#include <variant>
 
 /// @file supplement std (std)
 
@@ -99,7 +103,7 @@ concept pattern_for = requires(P p, S s) {
 
 /// \p P... are types of function object which reprsesnt different patterns in the state.
 ///
-/// State is of user spesified type \p S, which has member function `S::advance() -> void`.
+/// State is of user spesified type \p S, which can be advanced `S::advance() -> void`.
 ///
 /// Each pattern defines:
 ///
@@ -108,98 +112,107 @@ concept pattern_for = requires(P p, S s) {
 ///     - continuation: `operator()(continuation_tag, S&) -> void`
 ///     - end: `operator()(end_tag, S&) -> void `
 ///
+/// matcher_t uses these in matcher_t::operator()(initial_state, until_predicate).
+/// Predicate of patterns determine if the pattern matches that state.
+///
 template<typename S, pattern_for<S>... P>
     requires std::same_as<S, std::remove_cvref_t<S>>
 class matcher_t {
-    std::tuple<P...> patterns_;
+    using patterns_t = std::tuple<std::remove_cvref_t<P>...>;
+    patterns_t patterns_;
 
-    template<std::size_t, typename...>
-    struct mask_type_impl_;
+    using pattern_variant = std::variant<std::reference_wrapper<std::remove_cvref_t<P>>...>;
 
-    template<std::size_t amount, typename... Tail>
-        requires(amount == 0)
-    struct mask_type_impl_<amount, Tail...> {
-        using type = std::tuple<Tail...>;
-    };
+    /// Finds first pattern thats predicate is true. Throws if none found.
+    constexpr auto find_pattern(const S& state) -> pattern_variant {
+        auto found = std::optional<pattern_variant>{};
 
-    template<std::size_t amount, typename... Tail>
-        requires(amount > 0)
-    struct mask_type_impl_<amount, Tail...> {
-        using type = mask_type_impl_<amount - 1, bool, Tail...>::type;
-    };
-
-    using mask_type = mask_type_impl_<sizeof...(P)>::type;
-
-    constexpr auto create_predicate_mask(S& state) -> mask_type {
-        return [&]<std::size_t... I>(std::index_sequence<I...>) {
-            return std::make_tuple(std::get<I>(patterns_)(predicate_tag{}, state)...);
-        }(std::make_index_sequence<sizeof...(P)>());
-    }
-
-    static constexpr auto invert_mask(const mask_type& mask) -> mask_type {
-        return [&]<std::size_t... I>(std::index_sequence<I...>) {
-            return std::make_tuple(not std::get<I>(mask)...);
-        }(std::make_index_sequence<sizeof...(P)>());
-    }
-
-    static constexpr auto and_mask(const mask_type& lhs, const mask_type& rhs) -> mask_type {
-        return [&]<std::size_t... I>(std::index_sequence<I...>) {
-            return std::make_tuple((std::get<I>(lhs) and std::get<I>(rhs))...);
-        }(std::make_index_sequence<sizeof...(P)>());
-    }
-
-    template<typename Tag>
-    constexpr auto tag_call_with_mask(const mask_type& mask, S& state) -> void {
-        auto filtered_call = [&]<std::size_t I>() -> void {
-            if (std::get<I>(mask)) std::get<I>(patterns_)(Tag{}, state);
+        auto helper = [&]<std::size_t I>() -> bool {
+            if (std::get<I>(patterns_)(predicate_tag{}, state)) {
+                found = std::ref(std::get<I>(patterns_));
+                return false;
+            }
+            return true;
         };
 
         [&]<std::size_t... I>(std::index_sequence<I...>) {
-            // This template is weird :)
-            (filtered_call.template operator()<I>(), ...);
+            // Will short circuit, helper returns true until not.
+            // This syntax is weird...
+            ((helper.template operator()<I>()) and ...);
         }(std::make_index_sequence<sizeof...(P)>());
+
+        // Throws if not found.
+        return found.value();
     }
 
   public:
     [[nodiscard]] constexpr matcher_t(P... p) : patterns_{ p... } {}
 
-    /// Modifies state until `F::operator()(cons S&) -> bool` is true.
+    /// Modifies state until \p until_predicate is true.
     ///
-    /// Algorithm (every call happens in order of \p P):
     ///
-    ///     1) Call predicate of each pattern and store result (predicate mask, pm for short).
-    ///     2) Call begin of patterns filtered with pm.
-    ///     3) Store pm as "previous predicate mask", ppm for short.
-    ///     4) Call advance on the state.
-    ///     5) Create new predicate mask.
-    ///     6) Call begin of patterns filtered with mask (inverse ppm AND pm).
-    ///     7) Call continuation for filtered with mask (ppm AND pm).
-    ///     8) Call ends for all patterns filtered with mask (ppm AND inverse pm).
-    ///     9) If `until_predicate(current_state)` is ture, go to step 11)
-    ///     10) Go to step 3.
+    ///     1) If until_predicate(current_state) is true:
+    ///         - Return current_state
+    ///     2) Find first pattern p which predicate is true.
+    ///         - Throws if none of the predicates is true.
+    ///     3) Call begin of p.
+    ///     4) Advance \p current_state.
+    ///     5) If until_predicate(current_state) is true:
+    ///         - Call end of p.
+    ///         - Return current_state.
+    ///     6) If predicate of p is true:
+    ///         - Call continuation of p.
+    ///         - Go to step 4.
+    ///     7) else:
+    ///         - Call end of p.
+    ///         - Find new pattern p.
+    ///         - Go to step 2.
     ///
     template<typename F>
     [[nodiscard]] constexpr auto operator()(S current_state, const F until_predicate) -> S {
-        auto pm = create_predicate_mask(current_state);
-        tag_call_with_mask<begin_tag>(pm, current_state);
-        auto ppm = pm;
-        while (true) {
-            ppm = pm;
-            current_state.advance();
-            pm = create_predicate_mask(current_state);
-            tag_call_with_mask<begin_tag>(and_mask(invert_mask(ppm), pm), current_state);
-            tag_call_with_mask<continuation_tag>(and_mask(ppm, pm), current_state);
-            tag_call_with_mask<end_tag>(and_mask(ppm, invert_mask(pm)), current_state);
+        // Check if there is nothing to do.
+        if (until_predicate(current_state)) return current_state;
 
-            if (until_predicate(current_state)) return current_state;
+        pattern_variant pattern_found = find_pattern(current_state);
+
+        auto is_predicate_true = [&]() -> bool {
+            return std::visit([&](auto pat) -> bool { return pat(predicate_tag{}, current_state); },
+                              pattern_found);
+        };
+
+        auto tagged_call = [&]<typename Tag>(Tag) {
+            std::visit([&](auto pat) -> void { pat(Tag{}, current_state); }, pattern_found);
+        };
+
+        goto jump_start;
+
+    next_round:
+        current_state.advance();
+        if (until_predicate(current_state)) {
+            tagged_call(end_tag{});
+            return current_state;
         }
+
+        if (is_predicate_true()) {
+            // Continuing previous pattern.
+            tagged_call(continuation_tag{});
+        } else {
+            // End of previous pattern.
+            tagged_call(end_tag{});
+
+            // Time to find new pattern.
+            pattern_found = find_pattern(current_state);
+        jump_start:
+            tagged_call(begin_tag{});
+        }
+        goto next_round;
     }
 };
 
 template<typename S>
-constexpr auto create_matcher_for = []<typename... P> [[nodiscard]] (P&& ... p) {
+inline constexpr auto create_matcher_for = []<pattern_for<S>... P> [[nodiscard]] (P && ... p) {
     return matcher_t<S, P...>{ std::forward<P>(p)... };
 };
-} // namespace sstd
+} // namespace state_pattern_matcher
 } // namespace sstd
 } // namespace hycc
