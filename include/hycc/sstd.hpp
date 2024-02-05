@@ -64,12 +64,17 @@ class ownership {
     constexpr ownership& operator=(const ownership& that) {
         return *this = that.block_->get_ownership();
     }
-    /// No reason to move one pointer.
-    constexpr ownership(ownership&&) = default;
-    /// No reason to move one pointer.
-    constexpr ownership& operator=(ownership&&) = default;
+    constexpr ownership(ownership&& that) : block_{ that.block_ } {
+        that.block_ = nullptr;
+    };
+    constexpr ownership& operator=(ownership&& that) {
+        block_ = that.block_; 
+        that.block_ = nullptr;
+        return *this;
+    };
 
     constexpr ~ownership() {
+        if (block_ == nullptr) return;
         // If no other ownership exits, clean up.
         if (--(block_->count_) == 0) delete block_;
     }
