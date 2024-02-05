@@ -1,6 +1,7 @@
 #pragma once
 
 #include "hycc/sstd.hpp"
+#include "hycc/state_pattern_matcher.hpp"
 
 namespace hycc {
 
