@@ -9,7 +9,7 @@
 int main() {
     using namespace boost::ut;
     using namespace hycc;
-    "sequence matcher can be constructed"_test = [] {
+    "state pattern matcher can be constructed"_test = [] {
         using namespace state_pattern_matcher;
         struct state_type {
             std::string current                    = "";
