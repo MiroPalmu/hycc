@@ -78,7 +78,7 @@ int main() {
                                           { 0x0058, id },
                                           { 0x0059, id },
                                           { 0x005A, id },
-                                          { 0x005B, id },
+                                          { 0x005B, semantic_scope_operator },
                                           { 0x005C, operator_unit },
                                           { 0x005D, semantic_scope_operator },
                                           { 0x005E, operator_unit },

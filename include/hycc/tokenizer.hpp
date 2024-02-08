@@ -48,7 +48,6 @@ enum class char_class_enum {
         case (0x0058):
         case (0x0059):
         case (0x005A):
-        case (0x005B):
         case (0x005F):
         case (0x0061):
         case (0x0062):
@@ -95,6 +94,7 @@ enum class char_class_enum {
         case (0x002E):
         case (0x003A):
         case (0x003B):
+        case (0x005B):
         case (0x005D):
         case (0x007B):
         case (0x007D): return semantic_scope_operator;
