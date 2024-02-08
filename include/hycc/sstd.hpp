@@ -41,7 +41,7 @@ class control_block {
         return { this };
     }
 
-    [[nodiscard]] constexpr auto value(this auto&& me) -> T& { return me.shared_; }
+    [[nodiscard]] constexpr const auto& value(this auto&& me) { return me.shared_; }
 };
 
 /// Makes not not thread safe constexpr shared_ptr clone.
@@ -64,11 +64,9 @@ class ownership {
     constexpr ownership& operator=(const ownership& that) {
         return *this = that.block_->get_ownership();
     }
-    constexpr ownership(ownership&& that) : block_{ that.block_ } {
-        that.block_ = nullptr;
-    };
+    constexpr ownership(ownership&& that) : block_{ that.block_ } { that.block_ = nullptr; };
     constexpr ownership& operator=(ownership&& that) {
-        block_ = that.block_; 
+        block_      = that.block_;
         that.block_ = nullptr;
         return *this;
     };
@@ -79,7 +77,7 @@ class ownership {
         if (--(block_->count_) == 0) delete block_;
     }
 
-    [[nodiscard]] constexpr auto value(this auto&& me) -> T& { return me.block_->value(); }
+    [[nodiscard]] constexpr const auto& value(this auto&& me) { return me.block_->value(); }
 };
 
 /// Helper for creating function objects.
