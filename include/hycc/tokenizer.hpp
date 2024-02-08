@@ -5,7 +5,7 @@
 
 namespace hycc {
 
-enum class char_class_enum {
+enum class char_class {
     whitespace,
     id,
     integer,
@@ -15,8 +15,8 @@ enum class char_class_enum {
     other
 };
 
-[[nodiscard]] constexpr auto classify_char(const char8_t c) -> char_class_enum {
-    using enum char_class_enum;
+[[nodiscard]] constexpr auto classify_char(const char8_t c) -> char_class {
+    using enum char_class;
     switch (c) {
         case (0x0009):
         case (0x000B):
