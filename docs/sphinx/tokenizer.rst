@@ -396,7 +396,7 @@ using following format:
     * - integer token
       -
       - :code:`<integer>`
-    * - literal
+    * - literal token
       - :code:`L` = literal scope operator
       - :code:`L...L`
     * - semantic scope operator
@@ -421,11 +421,11 @@ with following greedy algorithm:
     - each token class is concidered one by one in order:
         1. whitespace
         2. integer token
-        3. literal
+        3. literal token
         4. semantic scope operator
         5. operator token
         6. identifier token
-        7. error
+        7. error token
 3. In case of error class report it and stop.
 4. Set pointer :code:`B` to one past end of indentified token.
 5. Store token :code:`[A,B)` with metadata.
