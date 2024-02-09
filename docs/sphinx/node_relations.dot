@@ -31,8 +31,9 @@ digraph {
         "namespace scope";
         "class scope";
         "function scope";
-        "class parents";
-        "for" [shape=invhouse]; // See leafs
+        // Out of MVP
+        // "class parents";
+        // "for" [shape=invhouse]; // See leafs
     }
 
     {
@@ -42,79 +43,85 @@ digraph {
         "namespace";
         "function";
         "class";
-        "data";
-    }
-
-    {
-        // Position [un]ordered properties
-        rank = same;
-        edge [style=invis];
-        "ordered property" -> "unordered property";
+        "data" [shape=invhouse]; // See leafs
     }
 
     {
         // leafs
         node [shape=invhouse];
         "expression";
+        // For some reason shape won't work here
         "data";
         "type";
         "identifier";
-        "alias";
-        // For some reason this won't work here
-        "for";
+        "function arguments";
+        // Out of mvp.
+        // "alias";
+        // For some reason shape won't work here
+        // "for";
 
     }
-
-    "recursive scope" [label="scope"];
 
     "scope" -> "ordered property" [color=2]; // property
     "scope" -> "unordered property" [color=2]; // property
 
     "class" -> "identifier" [color=2]; // property
-    "class" -> "class parents" [color=2]; // property
+    // Out of MVP.
+     // "class" -> "class parents" [color=2]; // property
     "class" -> "class scope" [color=2]; // property
-    "class scope" -> "recursive scope" [color=2]; // property
-    "class parents" -> "class" [color=3, style=dashed]; // pointer
+    "class scope" -> "scope" [color=2]; // property
+    // Out of MVP.
+    // "class parents" -> "class" [color=3, style=dashed]; // pointer
 
     "function" -> "identifier" [color=2]; // property
     "function" -> "type" [color=2]; // property
     "function" -> "function scope" [color=2]; // property
-    "function scope" -> "recursive scope" [color=2]; // property
+    "function scope" -> "scope" [color=2]; // property
 
 
+    "ordered property" -> "nested scope" [color=2]; // property
     "ordered property" -> "data" [color=1]; // decleration
     "ordered property" -> "namespace" [color=1]; // declaration
-    "ordered property" -> "alias" [color=2]; // property
+    // Out of MVP
+    // "ordered property" -> "alias" [color=2]; // property
     "ordered property" -> "statement" [color=2]; // property
     "ordered property" -> "expression" [color=2]; // property
 
     "unordered property" -> "function" [color=1]; // decleration
     "unordered property" -> "class" [color=1]; // decleration
 
+    "nested scope" -> "scope" [color=2]; // property
+
     "namespace" -> "identifier" [color=2] // property
     "namespace" -> "namespace scope" [color=2]; // property
-    "namespace scope" -> "recursive scope" [color=2]; // property
+    "namespace scope" -> "scope" [color=2]; // property
 
+    "statement" -> "expression" [color=2]; // property
     "statement" -> "statement scope" [color=2]; // property
-    "statement scope" -> "recursive scope" [color=2]; // property
+    "statement scope" -> "scope" [color=2]; // property
 
-    "alias" -> "identifier" [color=2]; // property
-    "alias" -> "for" [color=2]; // property
+    // Out of MVP
+    // "alias" -> "identifier" [color=2]; // property
+    // "alias" -> "for" [color=2]; // property
 
-    "for" -> "type" [color=2]; // property
-    "for" -> "namespace" [color=3, style=dashed]; // pointer
-    "for" -> "identifier" [color=3, style=dashed]; // pointer
+    // "for" -> "type" [color=2]; // property
+    // "for" -> "namespace" [color=3, style=dashed]; // pointer
+    // "for" -> "identifier" [color=3, style=dashed]; // pointer
 
     "expression" -> "function" [color=3, style=dashed]; // pointer
     "expression" -> "data" [color=3, style=dashed]; // pointer
     "expression" -> "expression" [color=2]; // property
-    "expression" -> "type" [color=2] // property
+    "expression" -> "type" [color=3, style=dashed] // pointer
+    "expression" -> "identifier" [color=2]; // property
 
     "type" -> "type" [color=2]; // property
     "type" -> "identifier" [color=2]; // property
     "type" -> "class" [color=3, style=dashed]; // pointer
+    "type" -> "function arguments" [color=2]; // property
+
+    "function arguments" -> "type" [color=2]; // property
 
     "data" -> "identifier" [color=2]; // property
     "data" -> "type" [color=2]; // property
-
+    "data" -> "expression" [color=2]; // property
 }
