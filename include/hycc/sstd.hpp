@@ -89,5 +89,27 @@ struct overloaded : Ts... {
 template<class... Ts>
 overloaded(Ts...) -> overloaded<Ts...>;
 
+class limited_truth {
+    std::size_t truth_left_;
+
+    constexpr void reduce_truth_() noexcept {
+        if (truth_left_) truth_left_ -= 1;
+    }
+
+  public:
+    [[nodiscard]] constexpr limited_truth(const std::size_t initial_truth = 0)
+        : truth_left_{ initial_truth } {}
+
+    [[nodiscard]] constexpr bool get_truth() {
+        const auto value = static_cast<bool>(truth_left_);
+        reduce_truth_();
+        return value;
+    }
+
+    constexpr void set_truth_amount(const std::size_t amount_of_truth) {
+        truth_left_ = amount_of_truth;
+    }
+};
+
 } // namespace sstd
 } // namespace hycc

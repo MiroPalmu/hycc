@@ -62,4 +62,58 @@ int main() {
         expect(ownership1.value().a == 3);
         expect(ownership1.value().b == 2.3f);
     };
+
+    "limited truth can be created"_test = [] {
+        auto limited_truth = sstd::limited_truth{ 42 };
+        expect(limited_truth.get_truth());
+    };
+
+    "limited truth can be used"_test = [] {
+        auto limited_truth = sstd::limited_truth{ 4 };
+
+        expect(limited_truth.get_truth());
+        expect(limited_truth.get_truth());
+        expect(limited_truth.get_truth());
+        expect(limited_truth.get_truth());
+        expect(not limited_truth.get_truth());
+        expect(not limited_truth.get_truth());
+    };
+
+    "limited truth can be set"_test = [] {
+        auto limited_truth = sstd::limited_truth{ 4 };
+
+        expect(limited_truth.get_truth());
+        expect(limited_truth.get_truth());
+        expect(limited_truth.get_truth());
+        expect(limited_truth.get_truth());
+        expect(not limited_truth.get_truth());
+        expect(not limited_truth.get_truth());
+        
+        limited_truth.set_truth_amount(2);
+        expect(limited_truth.get_truth());
+        expect(limited_truth.get_truth());
+        expect(not limited_truth.get_truth());
+        expect(not limited_truth.get_truth());
+
+        limited_truth.set_truth_amount(2);
+        limited_truth.set_truth_amount(2);
+        expect(limited_truth.get_truth());
+        limited_truth.set_truth_amount(1);
+        expect(limited_truth.get_truth());
+        expect(not limited_truth.get_truth());
+        expect(not limited_truth.get_truth());
+
+        limited_truth.set_truth_amount(2);
+        limited_truth.set_truth_amount(2);
+        expect(limited_truth.get_truth());
+        limited_truth.set_truth_amount(2);
+        expect(limited_truth.get_truth());
+        expect(limited_truth.get_truth());
+        expect(not limited_truth.get_truth());
+        limited_truth.set_truth_amount(2);
+        expect(limited_truth.get_truth());
+        expect(limited_truth.get_truth());
+        expect(not limited_truth.get_truth());
+        expect(not limited_truth.get_truth());
+    };
 }
