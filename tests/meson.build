@@ -11,6 +11,7 @@ single_threaded_unit_tests = [
     'test_tokenizer',
     'test_sstd',
     'test_state_pattern_matcher',
+    'test_ast_nodes',
 ]
 
 single_threaded_test_names_and_exes = {}
