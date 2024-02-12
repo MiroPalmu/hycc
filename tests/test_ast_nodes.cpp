@@ -27,6 +27,8 @@
  * [x] Break statement
  * [x] Continue statement
  * [x] Return statement
+ *
+ * [X] all abstract nodes
  **/
 
 // constexpr void
@@ -116,5 +118,27 @@ int main() {
 
     "return_statement_node can be constructed"_test = [] {
         expect(nothrow([] { [[maybe_unused]] auto _ = ast::return_statement_node{}; }));
+    };
+
+    "nested_scope can be constructed"_test = [] {
+        expect(nothrow([] { [[maybe_unused]] auto _ = ast::nested_scope{}; }));
+    };
+    "statement_scope can be constructed"_test = [] {
+        expect(nothrow([] { [[maybe_unused]] auto _ = ast::statement_scope{}; }));
+    };
+    "namespace_scope can be constructed"_test = [] {
+        expect(nothrow([] { [[maybe_unused]] auto _ = ast::namespace_scope{}; }));
+    };
+    "function_scope can be constructed"_test = [] {
+        expect(nothrow([] { [[maybe_unused]] auto _ = ast::function_scope{}; }));
+    };
+    "class_scope can be constructed"_test = [] {
+        expect(nothrow([] { [[maybe_unused]] auto _ = ast::class_scope{}; }));
+    };
+    "ordered_property   can be constructed"_test = [] {
+        expect(nothrow([] { [[maybe_unused]] auto _ = ast::ordered_property{}; }));
+    };
+    "unordered_property can be constructed"_test = [] {
+        expect(nothrow([] { [[maybe_unused]] auto _ = ast::unordered_property{}; }));
     };
 }
