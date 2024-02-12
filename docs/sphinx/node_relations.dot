@@ -31,6 +31,7 @@ digraph {
         "namespace scope";
         "class scope";
         "function scope";
+        "nested scope";
         // Out of MVP
         // "class parents";
         // "for" [shape=invhouse]; // See leafs
