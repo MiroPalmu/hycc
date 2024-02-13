@@ -4,6 +4,7 @@
 
 #include <algorithm>
 #include <exception>
+#include <format>
 #include <optional>
 #include <ranges>
 #include <span>
@@ -14,6 +15,19 @@
 #include "hycc/tokenizer.hpp"
 
 namespace hycc {
+
+class syntax_error : std::exception {
+    std::string what_;
+
+  public:
+    [[nodiscard]] syntax_error(const token& t) {
+        const auto sv_str = std::string{ t.sv_in_source.begin(), t.sv_in_source.end() };
+        what_             = std::format("syntax error at [{}:{}]: {}", t.row, t.column, sv_str);
+    }
+    [[nodiscard]] syntax_error() : what_{ "syntax error at end of file" } {}
+
+    const char* what() const noexcept { return what_.c_str(); }
+};
 
 struct token_pattern {
     token_type type;
@@ -93,6 +107,11 @@ class parser_t {
         }
         return {};
     }
-};
 
+    constexpr void throw_syntax_error(this auto&& self) {
+        if (self.tokens_left()) throw syntax_error{ self.get_unparsed_tokens().front() };
+        else
+            throw syntax_error{};
+    }
+};
 } // namespace hycc
