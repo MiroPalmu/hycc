@@ -38,6 +38,13 @@ class parser_t {
   public:
     [[nodiscard]] parser_t(const std::span<token const> tokens) : tokens_{ tokens } {}
 
+    /// Ignores whitespace.
+    [[nodiscard]] constexpr bool all_parsed() noexcept {
+        namespace rv = std::ranges::views;
+        return std::ranges::empty(get_unparsed_tokens() | rv::filter([](const token& t) {
+                                      return not(t.type == token_type::whitespace);
+                                  }));
+    }
     [[nodiscard]] constexpr auto match_and_consume(const std::span<token_pattern const> pattern,
                                                    const bool skip_whitespace = true)
         -> std::optional<std::vector<token>> {

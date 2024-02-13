@@ -81,6 +81,7 @@ int main() {
         expect_tokens(pattern, matched1.value());
         const auto matched2 = parser.match_and_consume(pattern);
         expect(not matched2.has_value());
+        expect(parser.all_parsed());
     };
 
     "parser_t can match patterns ignoring whitespace"_test = [] {
@@ -146,6 +147,7 @@ int main() {
         const auto pattern = std::vector<token_pattern>{ { token_type::literal, u8"123" } };
         const auto matched = parser.match_and_consume(pattern);
         expect(not matched.has_value());
+        expect(not parser.all_parsed());
     };
 
     "parser_t matching can fail gracefully (more complex)"_test = [] {
@@ -163,6 +165,7 @@ int main() {
         // Wrong semantic scope operator ( not ;.
         const auto matched = parser.match_and_consume(pattern);
         expect(not matched.has_value());
+        expect(not parser.all_parsed());
     };
 
     "parser_t matching fail does not consume tokens"_test = [] {
@@ -172,15 +175,19 @@ int main() {
         const auto pattern1 = std::vector<token_pattern>{ { token_type::literal, u8"123" } };
         const auto matched1 = parser.match_and_consume(pattern1);
         expect(not matched1.has_value());
+        expect(not parser.all_parsed());
 
         const auto pattern2 = std::vector<token_pattern>{ { token_type::integer, u8"123" } };
         const auto matched2 = parser.match_and_consume(pattern2);
         expect(matched2.has_value());
         expect_tokens(pattern2, matched2.value());
+        expect(parser.all_parsed());
 
         const auto pattern3 = std::vector<token_pattern>{ { token_type::integer, u8"123" } };
         const auto matched3 = parser.match_and_consume(pattern3);
         expect(not matched3.has_value());
+        expect(parser.all_parsed());
+
     };
 
     "parser_t matching fail does not consume tokens (more complex)"_test = [] {
@@ -221,5 +228,22 @@ int main() {
             };
         const auto matched3 = parser.match_and_consume(pattern3);
         expect(not matched3.has_value());
+    };
+
+    "parser_t.all_parsed() ignores whitespace"_test = [] {
+        auto source        = source_code{ u8"123  123  " };
+        const auto tokens  = tokenize(source);
+        auto parser        = parser_t{ tokens };
+        const auto pattern = std::vector<token_pattern>{ { token_type::integer, u8"123" } };
+
+        const auto matched1 = parser.match_and_consume(pattern);
+        expect(matched1.has_value());
+        expect_tokens(pattern, matched1.value());
+        expect(not parser.all_parsed());
+
+        const auto matched2 = parser.match_and_consume(pattern);
+        expect(matched2.has_value());
+        expect_tokens(pattern, matched2.value());
+        expect(parser.all_parsed());
     };
 }
