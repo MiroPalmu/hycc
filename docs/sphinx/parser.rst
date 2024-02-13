@@ -561,7 +561,7 @@ Properties
 Actions
 """""""
 
-- match patterns
+- match patterns until all tokens are parsed
 
 Patterns
 """"""""
@@ -595,11 +595,13 @@ End of scope
         - semantic scope operator: :code:`}`
     - actions:
 
-Exprssion
+Expression
     - pattern:
     - actions:
         - create expression node
         - push that node
+
+
 
 If statement
 ^^^^^^^^^^^^
