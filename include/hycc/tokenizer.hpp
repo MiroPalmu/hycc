@@ -387,15 +387,23 @@ struct tokenize_state {
         }
     };
 
-    auto operator_token =
-        sstd::overloaded{ [](predicate_tag, const auto& state) {
-                             return classify_char(*state.current_pos) == char_class::operator_unit;
-                         },
-                          [](begin_tag, auto& state) { state.set_cache(); },
-                          [](continuation_tag, auto) {},
-                          [](end_tag, auto& state) {
-                              state.tokenize_cache(token_type::operator_token);
-                          } };
+    struct operator_token_t {
+        bool next_perdicate_is_false = false;
+        auto operator()(predicate_tag, const tokenize_state& state) -> bool {
+            if (next_perdicate_is_false) return false;
+            return classify_char(*state.current_pos) == char_class::operator_unit;
+        }
+        auto operator()(begin_tag, tokenize_state& state) {
+            next_perdicate_is_false = true;
+            state.set_cache();
+        }
+        auto operator()(continuation_tag, tokenize_state&) {}
+
+        auto operator()(end_tag, tokenize_state& state) {
+            next_perdicate_is_false = false;
+            state.tokenize_cache(token_type::operator_token);
+        }
+    };
 
     struct identifier_t {
         bool next_char_is_first = true;
@@ -440,7 +448,7 @@ struct tokenize_state {
                                                       integer,
                                                       literal_t{},
                                                       semantic_scope_operator_t{},
-                                                      operator_token,
+                                                      operator_token_t{},
                                                       identifier_t{},
                                                       error_token_t{});
 

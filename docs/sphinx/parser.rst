@@ -262,7 +262,8 @@ Function arguments
 
 ^Function return type separator
     - pattern:
-        - operator token: :code:`->`
+        - operator token: :code:`-`
+        - operator token: :code:`>`
     - action:
         - create return type node
         - :code:`push` that node

@@ -353,6 +353,21 @@ int main() {
         }
     };
 
+    "operators are not concatted"_test = [] {
+        using namespace hycc;
+
+        auto source_code1 = source_code{ std::u8string{ u8"!#%&+-&<=>?\\^|~$@" } };
+
+        const auto tokens1 = tokenize(source_code1);
+        expect(tokens1.size() == 17);
+        const auto corrects = std::u8string{ u8"!#%&+-&<=>?\\^|~$@" };
+        for (const auto [i_s, c] : corrects | std::views::enumerate) {
+            const auto i = static_cast<std::size_t>(i_s);
+
+            expect_token({ token_type::operator_token, std::u8string{ c }, 0, i + 1 }, tokens1[i]);
+        }
+    };
+
     "idnentifier tokens are tokenized"_test = [] {
         using namespace hycc;
         auto source_code1  = source_code{ std::u8string{ u8"a b c" } };

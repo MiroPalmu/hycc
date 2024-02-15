@@ -404,7 +404,7 @@ using following format:
       - :code:`semantic scope operator`
     * - operator token
       -
-      - :code:`<operator unit>`
+      - :code:`operator unit`
     * - error token
       - define class :code:`X` containing every character
       - :code:`X`
