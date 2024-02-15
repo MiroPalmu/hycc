@@ -189,20 +189,20 @@ Passing type
         - identifier tokens: :code:`in`, :code:`inout`, :code:`out`, :code:`move`, :code:`copy` or :code:`forward`
     - action:
         - add new argument to the list
-        - set its passing type to what was mathced
+        - set its passing type to what was matched
 
 Argument identifier
     - pattern:
         - identifier token
     - action:
-        - if latests argument in the list does not have name:
+        - if latests argument in the list does not have identifier:
             - set its identifier to the matched identifier token
             - :code:`pop`
         - add new argument to the list
         - set its passing type to :code:`out`
         - set its identifier to the matched identifier token
 
-^Type spearator
+Type spearator
     - pattern:
         - sematic scope operator: :code:`:`
     - action:
