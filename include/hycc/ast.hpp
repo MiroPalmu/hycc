@@ -105,7 +105,42 @@ class identifier_node {
             std::identity{});
     }
 };
-class function_argument_node {};
+
+enum class passing_type { in, inout, out, move, copy, forward };
+
+class function_argument_node {
+    static constexpr auto in_pattern =
+        std::array{ token_pattern{ token_type::identifier, u8"in" } };
+    static constexpr auto inout_pattern =
+        std::array{ token_pattern{ token_type::identifier, u8"inout" } };
+    static constexpr auto out_pattern =
+        std::array{ token_pattern{ token_type::identifier, u8"out" } };
+    static constexpr auto move_pattern =
+        std::array{ token_pattern{ token_type::identifier, u8"move" } };
+    static constexpr auto copy_pattern =
+        std::array{ token_pattern{ token_type::identifier, u8"copy" } };
+    static constexpr auto forward_pattern =
+        std::array{ token_pattern{ token_type::identifier, u8"forward" } };
+    static constexpr auto argument_identifier_pattern = std::array{ token_type::identifier };
+    static constexpr auto type_separator_pattern =
+        std::array{ token_pattern{ token_type::semantic_scope_operator, u8":" } };
+    static constexpr auto argument_separator_pattern =
+        std::array{ token_pattern{ token_type::semantic_scope_operator, u8"," } };
+    static constexpr auto end_of_argument_pattern =
+        std::array{ token_pattern{ token_type::semantic_scope_operator, u8")" } };
+
+    // Defined after type_node.
+    // Forward decleration because token is incomplete at this point.
+    struct function_argument;
+    std::vector<function_argument> args_{};
+
+    constexpr void match_all_patterns_until_end(parser_t& parser);
+
+  public:
+    constexpr void push(parser_t& parser) { match_all_patterns_until_end(parser); }
+
+    [[nodiscard]] constexpr auto get_args(this auto&&) -> std::span<function_argument const>;
+};
 
 class type_node {
     static constexpr auto const_pattern =
@@ -126,20 +161,30 @@ class type_node {
   public:
     constexpr void push(parser_t& parser) { match_all_patterns(parser); }
     // [[nodiscard]] constexpr bool is_function() noexcept { return regular_type_.has_value(); }
-    [[nodiscard]] constexpr bool is_pointer() noexcept { return static_cast<bool>(pointed_type_); }
-    [[nodiscard]] constexpr auto pointed_type() -> type_node& {
-        if (not is_pointer()) throw std::runtime_error{ "Trying to access null ptr!" };
-        else
-            return *pointed_type_;
+    [[nodiscard]] constexpr bool is_pointer(this auto&& self) noexcept {
+        return static_cast<bool>(self.pointed_type_);
     }
-    [[nodiscard]] constexpr bool is_const() noexcept { return is_const_; }
-    [[nodiscard]] constexpr bool is_regular_type() noexcept { return regular_type_.has_value(); }
+    [[nodiscard]] constexpr auto pointed_type(this auto&& self) -> type_node& {
+        if (not self.is_pointer()) throw std::runtime_error{ "Trying to access null ptr!" };
+        else
+            return *self.pointed_type_;
+    }
+    [[nodiscard]] constexpr bool is_const(this auto&& self) noexcept { return self.is_const_; }
+    [[nodiscard]] constexpr bool is_regular_type(this auto&& self) noexcept {
+        return self.regular_type_.has_value();
+    }
 };
 
-// struct type_node::function_t_ {
-//     function_argument_node args_;
-//     type_node return_type_;
-// };
+struct function_argument_node::function_argument {
+    passing_type pass;
+    std::optional<token> identifier;
+    std::optional<type_node> type;
+};
+
+[[nodiscard]] constexpr auto function_argument_node::get_args(this auto&& self)
+    -> std::span<function_argument const> {
+    return self.args_;
+}
 
 class expression_node {};
 class class_decleration_node {};
@@ -197,6 +242,54 @@ constexpr void identifier_node::match_single_pattern(parser_t& parser) {
         identifier_units_.push_back(matched.value().front());
     } else {
         stop_signal_ = true;
+    }
+}
+
+constexpr void function_argument_node::match_all_patterns_until_end(parser_t& parser) {
+    while (true) {
+        const auto passing_type_v = [&] {
+            auto passing_type_v = passing_type::in;
+            auto matched        = parser_t::matched_type{};
+            if ((matched = parser.match_and_consume(in_pattern))) {
+                passing_type_v = passing_type::in;
+            } else if ((matched = parser.match_and_consume(inout_pattern))) {
+                passing_type_v = passing_type::inout;
+            } else if ((matched = parser.match_and_consume(out_pattern))) {
+                passing_type_v = passing_type::out;
+            } else if ((matched = parser.match_and_consume(move_pattern))) {
+                passing_type_v = passing_type::move;
+            } else if ((matched = parser.match_and_consume(copy_pattern))) {
+                passing_type_v = passing_type::copy;
+            } else if ((matched = parser.match_and_consume(forward_pattern))) {
+                passing_type_v = passing_type::forward;
+            }
+            return passing_type_v;
+        }();
+
+        const auto identifier =
+            parser.match_and_consume(argument_identifier_pattern).transform([](const auto& x) {
+                return x.front();
+            });
+
+        auto type = parser.match_and_consume(type_separator_pattern).transform([&](const auto&) {
+            auto t = type_node{};
+            t.push(parser);
+            return t;
+        });
+
+        if (identifier) {
+            args_.push_back(
+                function_argument{ passing_type_v, std::move(identifier), std::move(type) });
+        }
+
+        const auto comma = parser.match_and_consume(argument_separator_pattern);
+        const auto end   = parser.match_and_consume(end_of_argument_pattern);
+
+        if (end) {
+            if (comma) parser.throw_syntax_error();
+            break;
+        }
+        if (not comma) parser.throw_syntax_error();
     }
 }
 
