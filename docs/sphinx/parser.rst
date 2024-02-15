@@ -117,6 +117,9 @@ Actions
 
 Patterns
 """"""""
+
+In these patterns whitespace is not ignored.
+
 Scope resolution operator
     - pattern:
         - sematic scope operator: :code:`:`
