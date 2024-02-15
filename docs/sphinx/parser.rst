@@ -78,13 +78,23 @@ Patterns
 Nodes define different patterns of tokens.
 These patterns assume that whitespace tokens are ignored.
 
-When node tries to match patterns,
+When node tries to match a pattern,
 each pattern is tried one-by-one in order and if some pattern matches
 pointer to the first action of the patter is :code:`pushed`.
+After the actions that action pointer is :code:`popped`,
+this can also be done explicitly.
+
+There is special semantics for matching patterns:
+
+- :code:`single`: match until one pattern is matched
+- :code:`all`: match until one pattern is matched
 
 Syntax error is defined as situation when none of the patterns match.
 So empty pattern can be used to indicate that it is ok,
 if no previous patterens matched.
+
+If pattern is marked with ^, then it is interperted as a syntax error
+if previous pattern was not matched.
 
 Patterns are defined as series of different token types.
 Token type :code:`X` can be specialized for speicific token using regex :code:`reg`
@@ -113,7 +123,7 @@ List of ordered identifier tokens and scope resolution operators.
 
 Actions
 """""""
-- match patterns
+- match :code:`single` pattern until end of identifier
 
 Patterns
 """"""""
@@ -166,7 +176,7 @@ Arguments:
 Actions
 """""""
 
-- match patterns
+- match :code:`all` patterns until end of arguments
 
 Patterns
 """"""""
@@ -189,7 +199,7 @@ Argument identifier
         - set its passing type to :code:`out`
         - set its identifier to the matched identifier token
 
-Type spearator
+^Type spearator
     - pattern:
         - sematic scope operator: :code:`:`
     - action:
@@ -234,16 +244,10 @@ Properties
 Actions
 """""""
 
-- match patterns
+- match :code:`all` patterns
 
 Patterns
 """"""""
-
-Constness
-    - pattern:
-        - identifier token: :code:`const`
-    - action:
-        - set this type to be const
 
 Function arguments
     - pattern:
@@ -253,12 +257,18 @@ Function arguments
         - create argument type node
         - :code:`push` that node
 
-Function return type separator
+^Function return type separator
     - pattern:
         - operator token: :code:`->`
     - action:
         - create return type node
         - :code:`push` that node
+
+Constness
+    - pattern:
+        - identifier token: :code:`const`
+    - action:
+        - set this type to be const
 
 Pointer
     - pattern:
@@ -274,10 +284,6 @@ Regular type
         - mark this type to be a regular type
         - create identifier node
         - :code:`push` that node
-
-End of type
-    - pattern:
-    - action:
 
 Expression node
 ^^^^^^^^^^^^^^^
@@ -330,7 +336,7 @@ Properties
 Actions
 """""""
 
-- match one pattern
+- match :code:`single` pattern
 
 Patterns
 """"""""
@@ -367,7 +373,7 @@ Properties
 Actions
 """""""
 
-- match one patterns
+- match :code:`single` patterns
 
 Patterns
 """"""""
@@ -403,7 +409,7 @@ Properties
 Actions
 """""""
 
-- match one patterns
+- match :code:`single` patterns
 
 Patterns
 """"""""
@@ -440,8 +446,7 @@ Properties
 Actions
 """""""
 
-- :code:`push` that node
-- match one patterns
+- match :code:`single` pattern
 
 patterns
 """"""""
@@ -457,7 +462,6 @@ No-definition
     pattern:
         - semantic scope operator: :code:`;`
     actions:
-        - noop
 
 Decleration parsing node
 ^^^^^^^^^^^^^^^^^^^^^^^^
@@ -495,7 +499,7 @@ Properties
 Actions
 """""""
 
-- match one patterns
+- match :code:`single` patterns
 
 Patterns
 """"""""
@@ -560,11 +564,12 @@ Properties
 - set of unordered nodes
     - function decleration
     - class decleration
+- if is global scope
 
 Actions
 """""""
 
-- match patterns until all tokens are parsed
+- match :code:`single` pattern until end of scope or all tokens are parsed if this is global scope
 
 Patterns
 """"""""
@@ -628,7 +633,7 @@ Actions
 
 - create tested expression node
 - :code:`push` that node
-- match one pattern
+- match :code:`single` pattern
 - match next tokens to identifier token :code:`else` followed by identifier token :code:`if`:
     - create else-if-statement node
     - :code:`push` that node
@@ -677,7 +682,7 @@ Actions
 - match semantic scope operator :code:`{`
 - create for-condition scope node
 - :code:`push` that node
-- match one patterns
+- match :code:`single` patterns
 
 Patterns
 """"""""
@@ -710,7 +715,7 @@ Pre
 Actions
 """""""
 
-- match one pattern
+- match :code:`single` pattern
 
 Patterns
 """"""""
@@ -734,7 +739,7 @@ Pre
 Actions
 """""""
 
-- match one pattern
+- match :code:`single` pattern
 
 Patterns
 """"""""
