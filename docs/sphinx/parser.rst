@@ -76,7 +76,7 @@ Patterns
 --------
 
 Nodes define different patterns of tokens.
-Thsee patterns assume that whitespace tokens are ignored.
+These patterns assume that whitespace tokens are ignored.
 
 When node tries to match patterns,
 each pattern is tried one-by-one in order and if some pattern matches
