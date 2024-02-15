@@ -71,7 +71,7 @@ int main() {
         expect_tokens(pattern, matched.value());
     };
 
-    "parser_t can consumes matched tokens"_test = [] {
+    "parser_t consumes matched tokens"_test = [] {
         auto source         = source_code{ u8"123" };
         const auto tokens   = tokenize(source);
         auto parser         = parser_t{ tokens };
@@ -123,7 +123,7 @@ int main() {
         expect_tokens(pattern, matched.value());
     };
 
-    "parser_t can match all token types in str litteret with whitespace"_test = [] {
+    "parser_t can match all token types in str littered with whitespace"_test = [] {
         auto source       = source_code{ u8" 1\n``\t ; +\tid " };
         const auto tokens = tokenize(source);
         auto parser       = parser_t{ tokens };
