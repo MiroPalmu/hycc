@@ -1,6 +1,9 @@
 #pragma once
 
+#include <algorithm>
 #include <array>
+#include <functional>
+#include <ranges>
 #include <span>
 #include <utility>
 #include <variant>
@@ -45,7 +48,57 @@ using ordered_property = std::variant<nested_scope,
 
 using unordered_property = std::variant<function_decleration_node, class_decleration_node>;
 
-class identifier_node {};
+template<std::size_t N>
+using node_pattern = std::array<token_pattern, N>;
+
+/// Represents :: in some qulified identifier.
+struct scope_resolution_operator {};
+
+using identifier_unit = std::variant<scope_resolution_operator, token>;
+
+class identifier_node {
+    static constexpr auto scope_resolution_operator_pattern =
+        std::array{ token_pattern{ token_type::semantic_scope_operator, u8":" },
+                    token_pattern{ token_type::semantic_scope_operator, u8":" } };
+
+    static constexpr auto identifier_pattern = std::array{ token_type::identifier };
+
+    bool stop_signal_                              = false;
+    std::vector<identifier_unit> identifier_units_ = {};
+
+    constexpr void match_patterns(parser_t& parser);
+
+  public:
+    constexpr void push(parser_t& parser) {
+        while (not stop_signal_) { match_patterns(parser); }
+    }
+
+    [[nodiscard]] friend constexpr bool operator==(const identifier_node& lhs,
+                                                   const identifier_node& rhs) noexcept {
+        if (lhs.identifier_units_.size() != rhs.identifier_units_.size()) return false;
+        namespace rv = std::ranges::views;
+        return std::ranges::all_of(
+            rv::zip(lhs.identifier_units_, rhs.identifier_units_)
+                | rv::transform([](const auto& x) {
+                      const auto l = std::get<0>(x);
+                      const auto r = std::get<1>(x);
+                      if (std::holds_alternative<scope_resolution_operator>(l)
+                          and std::holds_alternative<scope_resolution_operator>(r)) {
+                          // Both are scope resolution operators.
+                          return true;
+                      } else if (std::holds_alternative<scope_resolution_operator>(l)
+                                 or std::holds_alternative<scope_resolution_operator>(r)) {
+                          // Only other is.
+                          return false;
+                      }
+                      // Both are tokens and assumend to be a identifiers.
+                      const auto l_t = std::get<token>(l);
+                      const auto r_t = std::get<token>(r);
+                      return l_t.sv_in_source == r_t.sv_in_source;
+                  }),
+            std::identity{});
+    }
+};
 class function_argument_node {};
 class type_node {};
 class expression_node {};
@@ -95,6 +148,17 @@ class function_scope : public scope_node {};
 class class_scope : public scope_node {};
 
 // Now that all classes are fully defined we can use them in members.
+
+constexpr void identifier_node::match_patterns(parser_t& parser) {
+    auto matched = decltype(parser.match_and_consume(scope_resolution_operator_pattern)){};
+    if ((matched = parser.match_and_consume(scope_resolution_operator_pattern, false))) {
+        identifier_units_.push_back(scope_resolution_operator{});
+    } else if ((matched = parser.match_and_consume(identifier_pattern, false))) {
+        identifier_units_.push_back(matched.value().front());
+    } else {
+        stop_signal_ = true;
+    }
+}
 
 constexpr void scope_node::match_patterns(parser_t& parser) {
     auto matched = decltype(parser.match_and_consume(nested_scope_pat)){};
