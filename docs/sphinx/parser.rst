@@ -123,7 +123,9 @@ List of ordered identifier tokens and scope resolution operators.
 
 Actions
 """""""
+
 - match :code:`single` pattern until end of identifier
+- give syntax error if the list is empty
 
 Patterns
 """"""""

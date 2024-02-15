@@ -19,6 +19,24 @@ int main() {
         expect(nothrow([&] { id.push(parser); }));
     };
 
+    "identifier_node gives syntax error for empty list [part 1]"_test = [] {
+        auto source       = source_code(u8";;");
+        const auto tokens = tokenize(source);
+        auto parser       = parser_t{ tokens };
+        auto id           = ast::identifier_node{};
+
+        expect(throws<hycc::syntax_error>([&] { id.push(parser); }));
+    };
+
+    "identifier_node gives syntax error for empty list [part 2]"_test = [] {
+        auto source       = source_code(u8"***");
+        const auto tokens = tokenize(source);
+        auto parser       = parser_t{ tokens };
+        auto id           = ast::identifier_node{};
+
+        expect(throws<hycc::syntax_error>([&] { id.push(parser); }));
+    };
+
     "identifier_node can match ::"_test = [] {
         auto source       = source_code(u8"a::b::c;");
         const auto tokens = tokenize(source);

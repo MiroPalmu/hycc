@@ -71,6 +71,7 @@ class identifier_node {
   public:
     constexpr void push(parser_t& parser) {
         while (not stop_signal_) { match_single_pattern(parser); }
+        if (identifier_units_.empty()) parser.throw_syntax_error();
     }
 
     [[nodiscard]] friend constexpr bool operator==(const identifier_node& lhs,
