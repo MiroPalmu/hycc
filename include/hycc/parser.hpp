@@ -130,10 +130,14 @@ class parser_t {
         return {};
     }
 
+    using matched_type =
+        decltype(std::declval<parser_t>().match_and_consume(std::span<token_type const>{}, false));
+
     constexpr void throw_syntax_error(this auto&& self) {
         if (self.tokens_left()) throw syntax_error{ self.get_unparsed_tokens().front() };
         else
             throw syntax_error{};
     }
 };
+
 } // namespace hycc

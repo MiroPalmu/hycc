@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <array>
 #include <functional>
+#include <memory>
 #include <ranges>
 #include <span>
 #include <utility>
@@ -105,7 +106,41 @@ class identifier_node {
     }
 };
 class function_argument_node {};
-class type_node {};
+
+class type_node {
+    static constexpr auto const_pattern =
+        std::array{ token_pattern{ token_type::identifier, u8"const" } };
+
+    static constexpr auto pointer_pattern =
+        std::array{ token_pattern{ token_type::operator_token, u8"*" } };
+
+    bool is_const_ = false;
+    /// Forward decleration due to type_node being incomplete type.
+    //     struct function_t_;
+    //     std::optional<function_t_> function_;
+    std::unique_ptr<type_node> pointed_type_{};
+    std::optional<identifier_node> regular_type_{};
+
+    constexpr void match_all_patterns(parser_t& parser);
+
+  public:
+    constexpr void push(parser_t& parser) { match_all_patterns(parser); }
+    // [[nodiscard]] constexpr bool is_function() noexcept { return regular_type_.has_value(); }
+    [[nodiscard]] constexpr bool is_pointer() noexcept { return static_cast<bool>(pointed_type_); }
+    [[nodiscard]] constexpr auto pointed_type() -> type_node& {
+        if (not is_pointer()) throw std::runtime_error{ "Trying to access null ptr!" };
+        else
+            return *pointed_type_;
+    }
+    [[nodiscard]] constexpr bool is_const() noexcept { return is_const_; }
+    [[nodiscard]] constexpr bool is_regular_type() noexcept { return regular_type_.has_value(); }
+};
+
+// struct type_node::function_t_ {
+//     function_argument_node args_;
+//     type_node return_type_;
+// };
+
 class expression_node {};
 class class_decleration_node {};
 class function_decleration_node {};
@@ -162,6 +197,20 @@ constexpr void identifier_node::match_single_pattern(parser_t& parser) {
         identifier_units_.push_back(matched.value().front());
     } else {
         stop_signal_ = true;
+    }
+}
+
+constexpr void type_node::match_all_patterns(parser_t& parser) {
+    auto matched = parser_t::matched_type{};
+    if ((matched = parser.match_and_consume(const_pattern))) { is_const_ = true; }
+    if ((matched = parser.match_and_consume(pointer_pattern))) {
+        pointed_type_ = std::make_unique<type_node>();
+        pointed_type_->push(parser);
+        return;
+    } else {
+        regular_type_ = identifier_node{};
+        regular_type_.value().push(parser);
+        return;
     }
 }
 
