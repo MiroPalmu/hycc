@@ -66,11 +66,11 @@ class identifier_node {
     bool stop_signal_                              = false;
     std::vector<identifier_unit> identifier_units_ = {};
 
-    constexpr void match_patterns(parser_t& parser);
+    constexpr void match_single_pattern(parser_t& parser);
 
   public:
     constexpr void push(parser_t& parser) {
-        while (not stop_signal_) { match_patterns(parser); }
+        while (not stop_signal_) { match_single_pattern(parser); }
     }
 
     [[nodiscard]] friend constexpr bool operator==(const identifier_node& lhs,
@@ -113,7 +113,7 @@ class scope_node {
     static constexpr auto end_of_scope =
         std::array{ token_pattern{ token_type::semantic_scope_operator, u8"}" } };
 
-    constexpr void match_patterns(parser_t& parser);
+    constexpr void match_single_pattern(parser_t& parser);
     std::vector<ordered_property> ordered_property_;
     bool is_global_scope_ = false;
     bool stop_signal_     = false;
@@ -128,7 +128,7 @@ class scope_node {
         if (is_global_scope() and parser.all_parsed()) goto stop;
         if (stop_signal_) goto stop;
 
-        match_patterns(parser);
+        match_single_pattern(parser);
 
         goto new_match;
     stop:
@@ -149,7 +149,7 @@ class class_scope : public scope_node {};
 
 // Now that all classes are fully defined we can use them in members.
 
-constexpr void identifier_node::match_patterns(parser_t& parser) {
+constexpr void identifier_node::match_single_pattern(parser_t& parser) {
     auto matched = decltype(parser.match_and_consume(scope_resolution_operator_pattern)){};
     if ((matched = parser.match_and_consume(scope_resolution_operator_pattern, false))) {
         identifier_units_.push_back(scope_resolution_operator{});
@@ -160,7 +160,7 @@ constexpr void identifier_node::match_patterns(parser_t& parser) {
     }
 }
 
-constexpr void scope_node::match_patterns(parser_t& parser) {
+constexpr void scope_node::match_single_pattern(parser_t& parser) {
     auto matched = decltype(parser.match_and_consume(nested_scope_pat)){};
     if ((matched = parser.match_and_consume(nested_scope_pat))) {
         auto scope = nested_scope{};
