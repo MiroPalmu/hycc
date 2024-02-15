@@ -70,6 +70,10 @@ class identifier_node {
 
   public:
     constexpr void push(parser_t& parser) {
+        // Ignore potential whitespace in the beginning.
+        [[maybe_unused]] auto _ =
+            parser.match_and_consume(std::vector{ token_type::whitespace }, false);
+
         while (not stop_signal_) { match_single_pattern(parser); }
         if (identifier_units_.empty()) parser.throw_syntax_error();
     }
