@@ -263,6 +263,7 @@ Function arguments
     - action:
         - create return type node
         - :code:`push` that node
+        - stop matching
 
 Constness
     - pattern:
@@ -277,6 +278,7 @@ Pointer
         - mark this type to be pointer
         - create pointed type node
         - :code:`push` that node
+        - stop matching
 
 Regular type
     - pattern:
