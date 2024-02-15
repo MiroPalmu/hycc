@@ -97,7 +97,7 @@ class class_scope : public scope_node {};
 // Now that all classes are fully defined we can use them in members.
 
 constexpr void scope_node::match_patterns(parser_t& parser) {
-    auto matched = decltype(parser.match_and_consume({})){};
+    auto matched = decltype(parser.match_and_consume(nested_scope_pat)){};
     if ((matched = parser.match_and_consume(nested_scope_pat))) {
         auto scope = nested_scope{};
         scope.push(parser);

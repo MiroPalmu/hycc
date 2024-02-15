@@ -3,6 +3,7 @@
 /// @file Includes the implementation of the parser.
 
 #include <algorithm>
+#include <concepts>
 #include <exception>
 #include <format>
 #include <optional>
@@ -40,6 +41,9 @@ struct token_pattern {
                                                    const token_pattern&) = default;
 };
 
+template<typename T>
+concept token_matchable = std::same_as<T, token_pattern> or std::same_as<T, token_type>;
+
 class parser_t {
     std::span<token const> tokens_;
     std::size_t next_unparsed_index_{ 0 };
@@ -59,7 +63,21 @@ class parser_t {
                                       return not(t.type == token_type::whitespace);
                                   }));
     }
-    [[nodiscard]] constexpr auto match_and_consume(const std::span<token_pattern const> pattern,
+
+    /// Helper function to deduce the template argument for the span version.
+    template<std::ranges::range R>
+        requires token_matchable<std::ranges::range_value_t<R>> and requires(R&& r) {
+            std::span<std::ranges::range_value_t<R> const>{ std::forward<R>(r) };
+        }
+    [[nodiscard]] constexpr decltype(auto) match_and_consume(R&& pattern,
+                                                             const bool skip_whitespace = true) {
+        return match_and_consume(
+            std::span<std::ranges::range_value_t<R> const>{ std::forward<R>(pattern) },
+            skip_whitespace);
+    }
+
+    template<token_matchable T>
+    [[nodiscard]] constexpr auto match_and_consume(const std::span<T const> pattern,
                                                    const bool skip_whitespace = true)
         -> std::optional<std::vector<token>> {
         if (pattern.empty()) return std::vector<token>{};
@@ -80,7 +98,11 @@ class parser_t {
                                             | rv::filter([](const auto& x) {
                                                   const auto& [p, i_t] = x;
                                                   const auto& [_, t]   = i_t;
-                                                  return p.match(t);
+                                                  if constexpr (std::same_as<T, token_type>) {
+                                                      return p == t.type;
+                                                  } else {
+                                                      return p.match(t);
+                                                  }
                                               })
                                             | rv::transform([](const auto& x) {
                                                   const auto& [_, i_t] = x;
