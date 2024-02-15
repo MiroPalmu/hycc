@@ -64,10 +64,9 @@ class identifier_node {
 
     static constexpr auto identifier_pattern = std::array{ token_type::identifier };
 
-    bool stop_signal_                              = false;
     std::vector<identifier_unit> identifier_units_ = {};
 
-    constexpr void match_single_pattern(parser_t& parser);
+    constexpr void match_single_pattern_until_end(parser_t& parser);
 
   public:
     constexpr void push(parser_t& parser) {
@@ -75,7 +74,7 @@ class identifier_node {
         [[maybe_unused]] auto _ =
             parser.match_and_consume(std::vector{ token_type::whitespace }, false);
 
-        while (not stop_signal_) { match_single_pattern(parser); }
+        match_single_pattern_until_end(parser);
         if (identifier_units_.empty()) parser.throw_syntax_error();
     }
 
@@ -198,26 +197,16 @@ class scope_node {
     static constexpr auto end_of_scope =
         std::array{ token_pattern{ token_type::semantic_scope_operator, u8"}" } };
 
-    constexpr void match_single_pattern(parser_t& parser);
+    constexpr void match_single_pattern_until_end(parser_t& parser);
     std::vector<ordered_property> ordered_property_;
     bool is_global_scope_ = false;
-    bool stop_signal_     = false;
 
   public:
     constexpr void mark_as_global_scope() noexcept { is_global_scope_ = true; }
     [[nodiscard]] constexpr bool is_global_scope(this auto&& self) noexcept {
         return self.is_global_scope_;
     }
-    constexpr void push(parser_t& parser) {
-    new_match:
-        if (is_global_scope() and parser.all_parsed()) goto stop;
-        if (stop_signal_) goto stop;
-
-        match_single_pattern(parser);
-
-        goto new_match;
-    stop:
-    }
+    constexpr void push(parser_t& parser) { match_single_pattern_until_end(parser); }
     [[nodiscard]] constexpr decltype(auto) get_ordered_property(this auto&& self);
 };
 class if_statement_node {};
@@ -234,14 +223,17 @@ class class_scope : public scope_node {};
 
 // Now that all classes are fully defined we can use them in members.
 
-constexpr void identifier_node::match_single_pattern(parser_t& parser) {
-    auto matched = decltype(parser.match_and_consume(scope_resolution_operator_pattern)){};
-    if ((matched = parser.match_and_consume(scope_resolution_operator_pattern, false))) {
-        identifier_units_.push_back(scope_resolution_operator{});
-    } else if ((matched = parser.match_and_consume(identifier_pattern, false))) {
-        identifier_units_.push_back(matched.value().front());
-    } else {
-        stop_signal_ = true;
+constexpr void identifier_node::match_single_pattern_until_end(parser_t& parser) {
+    auto stop_signal = false;
+    while (not stop_signal) {
+        auto matched = decltype(parser.match_and_consume(scope_resolution_operator_pattern)){};
+        if ((matched = parser.match_and_consume(scope_resolution_operator_pattern, false))) {
+            identifier_units_.push_back(scope_resolution_operator{});
+        } else if ((matched = parser.match_and_consume(identifier_pattern, false))) {
+            identifier_units_.push_back(matched.value().front());
+        } else {
+            stop_signal = true;
+        }
     }
 }
 
@@ -307,18 +299,23 @@ constexpr void type_node::match_all_patterns(parser_t& parser) {
     }
 }
 
-constexpr void scope_node::match_single_pattern(parser_t& parser) {
-    auto matched = decltype(parser.match_and_consume(nested_scope_pat)){};
-    if ((matched = parser.match_and_consume(nested_scope_pat))) {
-        auto scope = nested_scope{};
-        scope.push(parser);
-        ordered_property_.push_back(scope);
-    } else if ((matched = parser.match_and_consume(end_of_scope))) {
-        if (is_global_scope()) parser.throw_syntax_error();
-        stop_signal_ = true;
-    } else {
-        parser.throw_syntax_error();
+constexpr void scope_node::match_single_pattern_until_end(parser_t& parser) {
+    auto stop_signal = false;
+    while (not stop_signal) {
+        if (is_global_scope() and parser.all_parsed()) goto stop;
+        auto matched = decltype(parser.match_and_consume(nested_scope_pat)){};
+        if ((matched = parser.match_and_consume(nested_scope_pat))) {
+            auto scope = nested_scope{};
+            scope.push(parser);
+            ordered_property_.push_back(scope);
+        } else if ((matched = parser.match_and_consume(end_of_scope))) {
+            if (is_global_scope()) parser.throw_syntax_error();
+            stop_signal = true;
+        } else {
+            parser.throw_syntax_error();
+        }
     }
+stop:
 }
 [[nodiscard]] constexpr decltype(auto) scope_node::get_ordered_property(this auto&& self) {
     return std::span{ self.ordered_property_ };
