@@ -67,7 +67,7 @@ matches starting from some token:
 
 - those tokens are turned into expression nodes
     - identifiers in these nodes are in form :code:`__make_operator_name`,
-      where name is the name of the operator (e.g. :code:`_make_operator_unary_plus`)
+      where name is the name of the operator (e.g. :code:`__make_operator_unary_plus`)
     - later in the compilation process these calls are turned into
       correct function calls based on the types of arguments
 - continue the search from that expression

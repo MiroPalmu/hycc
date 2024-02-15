@@ -1,87 +1,87 @@
 Implicit members
 ================
 
-Spesific members from classes are implicitly defined
-from other defined members if not spesifiede explicitly.
-
-List of possible implicitly defined members, what they require
-to be implicitly defined and what expression they are equievalent to:
+Some member functions are implicitly defined from
+other defined members.
+Following list contains potentially implicitly defined
+members and what other members they require to be implicitly
+defnided:
 
 - :code:`T::operator+: (this) -> T`:
-    - :code:`T::operator=: (inout this, that) -> void`
-    - :code:`T::operator+: (this, that) -> T`
+    - requires: :code:`T::operator=: (inout this, that) -> void`
+    - requires: :code:`T::operator+: (this, that) -> T`
     - :code:`+t` is equivalent to :code:`T() + t`
 - :code:`T::operator-: (this) -> T`:
-    - :code:`T::operator=: (inout this, that) -> void`
-    - :code:`T::operator-: (this, that) -> T`
+    - requires: :code:`T::operator=: (inout this, that) -> void`
+    - requires: :code:`T::operator-: (this, that) -> T`
     - :code:`-t` is equivalent to :code:`T() - t`
 - :code:`T::operator++: (inout this) -> T`:
-    - :code:`T::operator=: (out this, integer_type) -> void`
-    - :code:`T::operator=: (inout this, that) -> void`
-    - :code:`T::operator+: (this, that) -> T`
+    - requires: :code:`T::operator=: (out this, integer_type) -> void`
+    - requires: :code:`T::operator=: (inout this, that) -> void`
+    - requires: :code:`T::operator+: (this, that) -> T`
     - :code:`t++` is equivalent to :code:`t + T(1)`
 - :code:`T::operator--: (inout this) -> T`:
-    - :code:`T::operator=: (out this, integer_type) -> void`
-    - :code:`T::operator=: (inout this, that) -> void`
-    - :code:`T::operator-: (this, that) -> T`
+    - requires: :code:`T::operator=: (out this, integer_type) -> void`
+    - requires: :code:`T::operator=: (inout this, that) -> void`
+    - requires: :code:`T::operator-: (this, that) -> T`
     - :code:`t--` is equivalent to :code:`t - T(1)`
 - :code:`T::operator<: (this, that) -> bool`
-    - :code:`T::operator<=>: (this, that) -> signed_interer`
+    - requires: :code:`T::operator<=>: (this, that) -> signed_interer`
     - :code:`t < tt` is equivalent to :code:`(t <=> tt) < 0`
 - :code:`T::operator<=: (this, that) -> bool`
-    - :code:`T::operator<=>: (this, that) -> signed_integer`
+    - requires: :code:`T::operator<=>: (this, that) -> signed_integer`
     - :code:`t <= tt` is equivalent to :code:`(t <=> tt) <= 0`
 - :code:`T::operator>: (this, that) -> bool`
-    - :code:`T::operator<=>: (this, that) -> signed_integer`
+    - requires: :code:`T::operator<=>: (this, that) -> signed_integer`
     - :code:`t > tt` is equivalent to :code:`(t <=> tt) > 0`
 - :code:`T::operator>=: (this, that) -> bool`
-    - :code:`T::operator<=>: (this, that) -> signed_integer`
+    - requires: :code:`T::operator<=>: (this, that) -> signed_integer`
     - :code:`t >= tt` is equivalent to :code:`(t <=> tt) >= 0`
 - :code:`T::operator==: (this, that) -> bool`
-    - :code:`T::operator<=>: (this, that) -> signed_integer`
+    - requires: :code:`T::operator<=>: (this, that) -> signed_integer`
     - :code:`t == tt` is equivalent to :code:`(t <=> tt) == 0`
 - :code:`T::operator!=: (this, that) -> bool`
-    - :code:`T::operator==: (this, that) -> bool`
+    - requires: :code:`T::operator==: (this, that) -> bool`
     - :code:`t != tt` is equivalent to :code:`!(t == tt)`
 - :code:`T::operator+=: (inout this, that) -> void`
-    - :code:`T::operator=: (inout this, that) -> void`
-    - :code:`T::operator+: (this, that) -> T`
+    - requires: :code:`T::operator=: (inout this, that) -> void`
+    - requires: :code:`T::operator+: (this, that) -> T`
     - :code:`t += tt` is equivalent to :code:`t = t + tt`
 - :code:`T::operator-=: (inout this, that) -> void`
-    - :code:`T::operator=: (inout this, that) -> void`
-    - :code:`T::operator-: (this, that) -> T`
+    - requires: :code:`T::operator=: (inout this, that) -> void`
+    - requires: :code:`T::operator-: (this, that) -> T`
     - :code:`t -= tt` is equivalent to :code:`t = t - tt`
 - :code:`T::operator*=: (inout this, that) -> void`
-    - :code:`T::operator=: (inout this, that) -> void`
-    - :code:`T::operator*: (this, that) -> T`
+    - requires: :code:`T::operator=: (inout this, that) -> void`
+    - requires: :code:`T::operator*: (this, that) -> T`
     - :code:`t *= tt` is equivalent to :code:`t = t * tt`
 - :code:`T::operator/=: (inout this, that) -> void`
-    - :code:`T::operator=: (inout this, that) -> void`
-    - :code:`T::operator/: (this, that) -> T`
+    - requires: :code:`T::operator=: (inout this, that) -> void`
+    - requires: :code:`T::operator/: (this, that) -> T`
     - :code:`t /= tt` is equivalent to :code:`t = t / tt`
 - :code:`T::operator%=: (inout this, that) -> void`
-    - :code:`T::operator=: (inout this, that) -> void`
-    - :code:`T::operator%: (this, that) -> T`
+    - requires: :code:`T::operator=: (inout this, that) -> void`
+    - requires: :code:`T::operator%: (this, that) -> T`
     - :code:`t %= tt` is equivalent to :code:`t = t % tt`
 - :code:`T::operator<<=: (inout this, that) -> void`
-    - :code:`T::operator=: (inout this, that) -> void`
-    - :code:`T::operator<<: (this, that) -> T`
+    - requires: :code:`T::operator=: (inout this, that) -> void`
+    - requires: :code:`T::operator<<: (this, that) -> T`
     - :code:`t <<= tt` is equivalent to :code:`t = t << tt`
 - :code:`T::operator>>=: (inout this, that) -> void`
-    - :code:`T::operator=: (inout this, that) -> void`
-    - :code:`T::operator>>: (this, that) -> T`
+    - requires: :code:`T::operator=: (inout this, that) -> void`
+    - requires: :code:`T::operator>>: (this, that) -> T`
     - :code:`t >>= tt` is equivalent to :code:`t = t >> tt`
 - :code:`T::operator&=: (inout this, that) -> void`
-    - :code:`T::operator=: (inout this, that) -> void`
-    - :code:`T::operator&: (this, that) -> T`
+    - requires: :code:`T::operator=: (inout this, that) -> void`
+    - requires: :code:`T::operator&: (this, that) -> T`
     - :code:`t &= tt` is equivalent to :code:`t = t & tt`
 - :code:`T::operator^=: (inout this, that) -> void`
-    - :code:`T::operator=: (inout this, that) -> void`
-    - :code:`T::operator^: (this, that) -> T`
+    - requires: :code:`T::operator=: (inout this, that) -> void`
+    - requires: :code:`T::operator^: (this, that) -> T`
     - :code:`t ^= tt` is equivalent to :code:`t = t ^ tt`
 - :code:`T::operator|=: (inout this, that) -> void`
-    - :code:`T::operator=: (inout this, that) -> void`
-    - :code:`T::operator|: (this, that) -> T`
+    - requires: :code:`T::operator=: (inout this, that) -> void`
+    - requires: :code:`T::operator|: (this, that) -> T`
     - :code:`t |= tt` is equivalent to :code:`t = t | tt`
 
 Implicit :code:`operator=`
@@ -92,14 +92,14 @@ they are equivelent to. They are generated by actions that modify
 the AST:
 
 - :code:`T::operator=: (inout this, that) -> void`
-    - :code:`T::operator=: (out this, that) -> void`
+    - requires: :code:`T::operator=: (out this, that) -> void`
 - :code:`T::operator=(out this, move that) -> void`
-    - :code:`T::operator=: (out this, that) -> void`
+    - requires: :code:`T::operator=: (out this, that) -> void`
 - :code:`T::operator=: (inout this, move that) -> void`
-    - :code:`T::operator=: (inout this, that) -> void`
+    - requires either: :code:`T::operator=: (inout this, that) -> void`
     - or :code:`T::operator=: (out this, move that) -> void`
     - if both are defined, the first is preferred
 - :code:`T::operator: (inout, other_type) -> void`
-    - :code:`T::operator: (out, other_type) -> void`
+    - requires: :code:`T::operator: (out, other_type) -> void`
 - :code:`T::operator: (move this) -> void`
     - generated if every data member have :code:`operator: (move this) -> void` defined
