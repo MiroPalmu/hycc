@@ -53,6 +53,17 @@ class parser_t {
         return tokens_.subspan(next_unparsed_index_);
     }
 
+    [[nodiscard]] static constexpr bool match_pattern(const token_matchable auto p,
+                                                      const token& t) {
+        if constexpr (std::same_as<std::remove_cvref_t<decltype(p)>, token_type>) {
+            return p == t.type;
+        } else {
+            return p.match(t);
+        }
+
+        static_assert(true, "This should not happen, due to token_matchable constraint :)");
+    }
+
   public:
     [[nodiscard]] parser_t(const std::span<token const> tokens) : tokens_{ tokens } {}
 
@@ -98,11 +109,7 @@ class parser_t {
                                             | rv::filter([](const auto& x) {
                                                   const auto& [p, i_t] = x;
                                                   const auto& [_, t]   = i_t;
-                                                  if constexpr (std::same_as<T, token_type>) {
-                                                      return p == t.type;
-                                                  } else {
-                                                      return p.match(t);
-                                                  }
+                                                  return match_pattern(p, t);
                                               })
                                             | rv::transform([](const auto& x) {
                                                   const auto& [_, i_t] = x;
@@ -132,6 +139,58 @@ class parser_t {
 
     using matched_type =
         decltype(std::declval<parser_t>().match_and_consume(std::span<token_type const>{}, false));
+
+    /// Consumes until pattern is matched. Matched token is not included in return value but is parsed.
+    [[nodiscard]] constexpr auto consume_until(const token_matchable auto pattern,
+                                               const bool skip_whitespace = true) -> matched_type {
+        auto skip = [&](const token& t) {
+            return skip_whitespace and t.type == token_type::whitespace;
+        };
+
+        namespace rv                      = std::ranges::views;
+        auto matched_tokens_with_indecies = get_unparsed_tokens() | rv::enumerate
+                                            | rv::filter([&](const auto& x) {
+                                                  const auto& [_, t] = x;
+                                                  if (skip(t)) return false;
+                                                  return true;
+                                              })
+                                            | rv::take_while([&](const auto& x) {
+                                                  return not match_pattern(pattern, std::get<1>(x));
+                                              });
+
+        if (matched_tokens_with_indecies.empty()) {
+            // Nothing matched
+            if (match_and_consume(std::vector{ pattern }, skip_whitespace)) {
+                // Because pattern was first that matched.
+                return matched_type::value_type{};
+            }
+
+            return {};
+        }
+        using fold_t = std::tuple<std::vector<token>,
+                                  std::ranges::range_difference_t<decltype(get_unparsed_tokens())>>;
+        // Appends matched tokens together and take index of x unconditionally,
+        // so afther the fold it will contain the last matched index.
+        auto fold_f = [](fold_t lhs, const auto& x) {
+            const auto& [i, t] = x;
+            std::get<0>(lhs).push_back(t);
+            std::get<1>(lhs) = i;
+            return lhs;
+        };
+        auto [matched_tokens, last_index] =
+            std::ranges::fold_left(matched_tokens_with_indecies, fold_t{}, fold_f);
+
+        if (last_index + 1 == std::ranges::ssize(tokens_)) {
+            // Everything was matched, i.e. pattern was not present.
+            return {};
+        }
+
+        // + 1 from indexing starting at 0.
+        // + 1 from consuming the matched pattern.
+        next_unparsed_index_ += static_cast<std::size_t>(last_index) + 1 + 1;
+
+        return matched_tokens;
+    }
 
     constexpr void throw_syntax_error(this auto&& self) {
         if (self.tokens_left()) throw syntax_error{ self.get_unparsed_tokens().front() };
