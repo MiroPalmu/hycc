@@ -58,10 +58,6 @@ struct scope_resolution_operator {};
 using identifier_unit = std::variant<scope_resolution_operator, token>;
 
 class identifier_node {
-    static constexpr auto scope_resolution_operator_pattern =
-        std::array{ token_pattern{ token_type::semantic_scope_operator, u8":" },
-                    token_pattern{ token_type::semantic_scope_operator, u8":" } };
-
     static constexpr auto identifier_pattern = std::array{ token_type::identifier };
 
     std::vector<identifier_unit> identifier_units_ = {};
@@ -103,11 +99,32 @@ class identifier_node {
                   }),
             std::identity{});
     }
+
+  private:
+    ///////////////////// Patterns /////////////////////////////////////////////////////////////////
+    static constexpr auto scope_resolution_operator_pattern =
+        std::array{ token_pattern{ token_type::semantic_scope_operator, u8":" },
+                    token_pattern{ token_type::semantic_scope_operator, u8":" } };
+    ////////////////////////////////////////////////////////////////////////////////////////////////
 };
 
 enum class passing_type { in, inout, out, move, copy, forward };
 
 class function_argument_node {
+    // Defined after type_node.
+    // Forward decleration because token is incomplete at this point.
+    struct function_argument;
+    std::vector<function_argument> args_{};
+
+    constexpr void match_all_patterns_until_end(parser_t& parser);
+
+  public:
+    constexpr void push(parser_t& parser) { match_all_patterns_until_end(parser); }
+
+    [[nodiscard]] constexpr auto get_args(this auto&&) -> std::span<function_argument const>;
+
+  private:
+    ///////////////////// Patterns /////////////////////////////////////////////////////////////////
     static constexpr auto in_pattern =
         std::array{ token_pattern{ token_type::identifier, u8"in" } };
     static constexpr auto inout_pattern =
@@ -127,26 +144,10 @@ class function_argument_node {
         std::array{ token_pattern{ token_type::semantic_scope_operator, u8"," } };
     static constexpr auto end_of_argument_pattern =
         std::array{ token_pattern{ token_type::semantic_scope_operator, u8")" } };
-
-    // Defined after type_node.
-    // Forward decleration because token is incomplete at this point.
-    struct function_argument;
-    std::vector<function_argument> args_{};
-
-    constexpr void match_all_patterns_until_end(parser_t& parser);
-
-  public:
-    constexpr void push(parser_t& parser) { match_all_patterns_until_end(parser); }
-
-    [[nodiscard]] constexpr auto get_args(this auto&&) -> std::span<function_argument const>;
+    ////////////////////////////////////////////////////////////////////////////////////////////////
 };
 
 class type_node {
-    static constexpr auto const_pattern =
-        std::array{ token_pattern{ token_type::identifier, u8"const" } };
-
-    static constexpr auto pointer_pattern =
-        std::array{ token_pattern{ token_type::operator_token, u8"*" } };
 
     bool is_const_ = false;
     /// Forward decleration due to type_node being incomplete type.
@@ -172,6 +173,14 @@ class type_node {
     [[nodiscard]] constexpr bool is_regular_type(this auto&& self) noexcept {
         return self.regular_type_.has_value();
     }
+
+    private
+    ///////////////////// Patterns /////////////////////////////////////////////////////////////////
+    static constexpr auto const_pattern =
+        std::array{ token_pattern{ token_type::identifier, u8"const" } };
+    static constexpr auto pointer_pattern =
+        std::array{ token_pattern{ token_type::operator_token, u8"*" } };
+    ////////////////////////////////////////////////////////////////////////////////////////////////
 };
 
 struct function_argument_node::function_argument {
@@ -192,11 +201,6 @@ class namespace_decleration_node {};
 class data_decleration_node {};
 class decleration_parsing_node {};
 class scope_node {
-    static constexpr auto nested_scope_pat =
-        std::array{ token_pattern{ token_type::semantic_scope_operator, u8"{" } };
-    static constexpr auto end_of_scope =
-        std::array{ token_pattern{ token_type::semantic_scope_operator, u8"}" } };
-
     constexpr void match_single_pattern_until_end(parser_t& parser);
     std::vector<ordered_property> ordered_property_;
     bool is_global_scope_ = false;
@@ -208,6 +212,14 @@ class scope_node {
     }
     constexpr void push(parser_t& parser) { match_single_pattern_until_end(parser); }
     [[nodiscard]] constexpr decltype(auto) get_ordered_property(this auto&& self);
+
+private:
+    ///////////////////// Patterns /////////////////////////////////////////////////////////////////
+    static constexpr auto nested_scope_pat =
+        std::array{ token_pattern{ token_type::semantic_scope_operator, u8"{" } };
+    static constexpr auto end_of_scope =
+        std::array{ token_pattern{ token_type::semantic_scope_operator, u8"}" } };
+    ////////////////////////////////////////////////////////////////////////////////////////////////
 };
 class if_statement_node {};
 class for_loop_statement_node {};
