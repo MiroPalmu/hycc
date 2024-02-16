@@ -422,4 +422,102 @@ int main() {
         const auto matched3 = parser.match_and_consume(pattern2);
         expect(not matched3.has_value());
     };
+
+    "empty parser_t can match and consume pattern"_test = [] {
+        auto source       = source_code{ u8"" };
+        const auto tokens = tokenize(source);
+        auto parser       = parser_t{ tokens };
+
+        const auto matched = parser.match_and_consume(std::vector{ token_type::identifier });
+
+        expect(not matched.has_value());
+    };
+
+    "empty parser_t can consume until pattern"_test = [] {
+        auto source       = source_code{ u8"" };
+        const auto tokens = tokenize(source);
+        auto parser       = parser_t{ tokens };
+
+        const auto matched = parser.consume_until(token_pattern{ token_type::identifier, u8"end" });
+
+        expect(not matched.has_value());
+    };
+
+    "empty parser_t can consume until the first token"_test = [] {
+        auto source       = source_code{ u8" end" };
+        const auto tokens = tokenize(source);
+        auto parser       = parser_t{ tokens };
+
+        const auto matched = parser.consume_until(token_pattern{ token_type::identifier, u8"end" });
+
+        expect(matched.has_value());
+        expect(matched.value().empty());
+    };
+
+    "parser_t can consume until pattern"_test = [] {
+        auto source       = source_code{ u8"123abc +-end end" };
+        const auto tokens = tokenize(source);
+        auto parser       = parser_t{ tokens };
+
+        const auto matched = parser.consume_until(token_pattern{ token_type::identifier, u8"end" });
+        const auto expected = std::vector{ token_pattern{ token_type::integer, u8"123" },
+                                           token_pattern{ token_type::identifier, u8"abc" },
+                                           token_pattern{ token_type::operator_token, u8"+" },
+                                           token_pattern{ token_type::operator_token, u8"-" } };
+
+        expect(matched.has_value());
+        expect_tokens(expected, matched.value());
+
+        expect(parser
+                   .match_and_consume(
+                       std::vector<token_pattern>{ { token_type::identifier, u8"end" } })
+                   .has_value());
+        expect(parser.all_parsed());
+    };
+
+    "parser_t can consume until token_type"_test = [] {
+        auto source       = source_code{ u8"123 321 +-end end" };
+        const auto tokens = tokenize(source);
+        auto parser       = parser_t{ tokens };
+
+        const auto matched  = parser.consume_until(token_type::identifier);
+        const auto expected = std::vector{ token_pattern{ token_type::integer, u8"123" },
+                                           token_pattern{ token_type::integer, u8"321" },
+                                           token_pattern{ token_type::operator_token, u8"+" },
+                                           token_pattern{ token_type::operator_token, u8"-" } };
+
+        expect(matched.has_value());
+        expect_tokens(expected, matched.value());
+
+        expect(parser
+                   .match_and_consume(
+                       std::vector<token_pattern>{ { token_type::identifier, u8"end" } })
+                   .has_value());
+        expect(parser.all_parsed());
+    };
+
+    "parser_t can consume until pattern with whitespace"_test = [] {
+        auto source       = source_code{ u8"123abc +-end end" };
+        const auto tokens = tokenize(source);
+        auto parser       = parser_t{ tokens };
+
+        const auto matched =
+            parser.consume_until(token_pattern{ token_type::identifier, u8"end" }, false);
+        const auto expected = std::vector{ token_pattern{ token_type::integer, u8"123" },
+                                           token_pattern{ token_type::identifier, u8"abc" },
+                                           token_pattern{ token_type::whitespace, u8" " },
+                                           token_pattern{ token_type::operator_token, u8"+" },
+                                           token_pattern{ token_type::operator_token, u8"-" } };
+
+        expect(matched.has_value());
+        expect_tokens(expected, matched.value());
+
+        expect(parser
+                   .match_and_consume(
+                       std::vector<token_pattern>{ { token_type::whitespace, u8" " },
+                                                   { token_type::identifier, u8"end" } },
+                       false)
+                   .has_value());
+        expect(parser.all_parsed());
+    };
 }
