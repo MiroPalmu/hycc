@@ -6,6 +6,7 @@
 #include <memory>
 #include <ranges>
 #include <span>
+#include <type_traits>
 #include <utility>
 #include <variant>
 #include <vector>
@@ -147,12 +148,14 @@ class function_argument_node {
     ////////////////////////////////////////////////////////////////////////////////////////////////
 };
 
-class type_node {
+struct function_type;
 
+class type_node {
     bool is_const_ = false;
-    /// Forward decleration due to type_node being incomplete type.
-    //     struct function_t_;
-    //     std::optional<function_t_> function_;
+
+    /// Unique_ptr because function_type is incomplete because type_node is too.
+    std::unique_ptr<function_type> function_{};
+    /// Unique_ptr because type_node is incomplete.
     std::unique_ptr<type_node> pointed_type_{};
     std::optional<identifier_node> regular_type_{};
 
@@ -160,7 +163,17 @@ class type_node {
 
   public:
     constexpr void push(parser_t& parser) { match_all_patterns(parser); }
-    // [[nodiscard]] constexpr bool is_function() noexcept { return regular_type_.has_value(); }
+    [[nodiscard]] constexpr bool is_function(this auto&& self) noexcept {
+        return static_cast<bool>(self.function_);
+    }
+
+    [[nodiscard]] constexpr auto function(this auto&& self)
+        -> sstd::adapt_constness_t<decltype(self), function_type&> {
+        if (not self.is_function()) throw std::runtime_error{ "Trying to access null ptr!" };
+        else
+            return *self.function_;
+    }
+
     [[nodiscard]] constexpr bool is_pointer(this auto&& self) noexcept {
         return static_cast<bool>(self.pointed_type_);
     }
@@ -174,8 +187,13 @@ class type_node {
         return self.regular_type_.has_value();
     }
 
-    private
+  private:
     ///////////////////// Patterns /////////////////////////////////////////////////////////////////
+    static constexpr auto function_arguments_pattern =
+        std::array{ token_pattern{ token_type::semantic_scope_operator, u8"(" } };
+    static constexpr auto function_return_type_separator_pattern =
+        std::array{ token_pattern{ token_type::operator_token, u8"-" },
+                    token_pattern{ token_type::operator_token, u8">" } };
     static constexpr auto const_pattern =
         std::array{ token_pattern{ token_type::identifier, u8"const" } };
     static constexpr auto pointer_pattern =
@@ -193,6 +211,11 @@ struct function_argument_node::function_argument {
     -> std::span<function_argument const> {
     return self.args_;
 }
+
+struct function_type {
+    function_argument_node args{};
+    type_node return_type{};
+};
 
 class expression_node {};
 class class_decleration_node {};
@@ -213,7 +236,7 @@ class scope_node {
     constexpr void push(parser_t& parser) { match_single_pattern_until_end(parser); }
     [[nodiscard]] constexpr decltype(auto) get_ordered_property(this auto&& self);
 
-private:
+  private:
     ///////////////////// Patterns /////////////////////////////////////////////////////////////////
     static constexpr auto nested_scope_pat =
         std::array{ token_pattern{ token_type::semantic_scope_operator, u8"{" } };
@@ -299,15 +322,29 @@ constexpr void function_argument_node::match_all_patterns_until_end(parser_t& pa
 
 constexpr void type_node::match_all_patterns(parser_t& parser) {
     auto matched = parser_t::matched_type{};
+    if ((matched = parser.match_and_consume(function_arguments_pattern))) {
+        function_ = std::make_unique<function_type>();
+        function_->args.push(parser);
+
+        // Ignore potential leading whitespace.
+        [[maybe_unused]] const auto _ =
+            parser.match_and_consume(std::vector{ token_type::whitespace }, false);
+
+        if ((matched = parser.match_and_consume(function_return_type_separator_pattern, false))) {
+            auto ret_type = type_node{};
+            ret_type.push(parser);
+            function_->return_type = std::move(ret_type);
+            return;
+        } else
+            parser.throw_syntax_error();
+    }
     if ((matched = parser.match_and_consume(const_pattern))) { is_const_ = true; }
     if ((matched = parser.match_and_consume(pointer_pattern))) {
         pointed_type_ = std::make_unique<type_node>();
         pointed_type_->push(parser);
-        return;
     } else {
         regular_type_ = identifier_node{};
         regular_type_.value().push(parser);
-        return;
     }
 }
 
