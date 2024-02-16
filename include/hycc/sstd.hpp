@@ -111,5 +111,49 @@ class limited_truth {
     }
 };
 
+/// If T is const then U is also const.
+template<typename T, typename U>
+struct adapt_constness {
+    using type = std::conditional_t<std::is_const_v<std::remove_reference_t<T>>, const U, U>;
+};
+/// If T is const then U is also const.
+template<typename T, typename U>
+struct adapt_constness<T, U&> {
+    using type = std::conditional_t<std::is_const_v<std::remove_reference_t<T>>, const U&, U&>;
+};
+/// If T is const then U is also const.
+template<typename T, typename U>
+struct adapt_constness<T, U&&> {
+    using type = std::conditional_t<std::is_const_v<std::remove_reference_t<T>>, const U&&, U&&>;
+};
+
+/// Helper for adapt_constness_t.
+template<typename T, typename U>
+using adapt_constness_t = typename adapt_constness<T, U>::type;
+
+static_assert(std::same_as<int, adapt_constness_t<float, int>>);
+static_assert(std::same_as<int&, adapt_constness_t<float, int&>>);
+static_assert(std::same_as<int&&, adapt_constness_t<float, int&&>>);
+
+static_assert(std::same_as<const int, adapt_constness_t<const float, int>>);
+static_assert(std::same_as<const int&, adapt_constness_t<const float, int&>>);
+static_assert(std::same_as<const int&&, adapt_constness_t<const float, int&&>>);
+
+static_assert(std::same_as<int, adapt_constness_t<float&, int>>);
+static_assert(std::same_as<int&, adapt_constness_t<float&, int&>>);
+static_assert(std::same_as<int&&, adapt_constness_t<float&, int&&>>);
+
+static_assert(std::same_as<const int, adapt_constness_t<const float&, int>>);
+static_assert(std::same_as<const int&, adapt_constness_t<const float&, int&>>);
+static_assert(std::same_as<const int&&, adapt_constness_t<const float&&, int&&>>);
+
+static_assert(std::same_as<int, adapt_constness_t<float&&, int>>);
+static_assert(std::same_as<int&, adapt_constness_t<float&&, int&>>);
+static_assert(std::same_as<int&&, adapt_constness_t<float&&, int&&>>);
+
+static_assert(std::same_as<const int, adapt_constness_t<const float&&, int>>);
+static_assert(std::same_as<const int&, adapt_constness_t<const float&&, int&>>);
+static_assert(std::same_as<const int&&, adapt_constness_t<const float&&, int&&>>);
+
 } // namespace sstd
 } // namespace hycc
