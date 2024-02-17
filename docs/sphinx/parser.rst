@@ -93,8 +93,10 @@ Syntax error is defined as situation when none of the patterns match.
 So empty pattern can be used to indicate that it is ok,
 if no previous patterens matched.
 
-If pattern is marked with ^, then it is interperted as a syntax error
-if previous pattern was not matched.
+Patterns can be a continuations of the previous pattern by prefixing them with ^.
+This means that they are tried only if the previous pattern matched.
+It is a syntax error if the previous pattern matched but the continuation
+of it does not.
 
 Patterns are defined as series of different token types.
 Token type :code:`X` can be specialized for speicific token using regex :code:`reg`
