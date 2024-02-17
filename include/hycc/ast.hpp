@@ -261,10 +261,13 @@ class class_scope : public scope_node {};
 constexpr void identifier_node::match_single_pattern_until_end(parser_t& parser) {
     auto stop_signal = false;
     while (not stop_signal) {
-        auto matched = decltype(parser.match_and_consume(scope_resolution_operator_pattern)){};
-        if ((matched = parser.match_and_consume(scope_resolution_operator_pattern, false))) {
+        auto matched = parser_t::matched_type{};
+        if ((matched = parser.match_and_consume(scope_resolution_operator_pattern))) {
             identifier_units_.push_back(scope_resolution_operator{});
-        } else if ((matched = parser.match_and_consume(identifier_pattern, false))) {
+            matched = parser.match_and_consume(identifier_pattern);
+            if (not matched) parser.throw_syntax_error();
+            identifier_units_.push_back(matched.value().front());
+        } else if ((matched = parser.match_and_consume(identifier_pattern))) {
             identifier_units_.push_back(matched.value().front());
         } else {
             stop_signal = true;

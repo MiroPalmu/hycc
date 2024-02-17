@@ -126,14 +126,11 @@ List of ordered identifier tokens and scope resolution operators.
 Actions
 """""""
 
-- match whitespace for ignoring purposes
 - match :code:`single` pattern until end of identifier
 - give syntax error if the list is empty
 
 Patterns
 """"""""
-
-In these patterns whitespace is not ignored.
 
 Scope resolution operator
     - pattern:
@@ -142,7 +139,13 @@ Scope resolution operator
     - actions:
         - add scope resolution operator to list of identifiers
 
-Identifier
+^Qualified identifier
+    - pattern:
+        - identifier token
+    - actions:
+        - add matched identifier token to list of identifier tokens
+
+Unqualified identifier
     - pattern:
         - identifier token
     - actions:
