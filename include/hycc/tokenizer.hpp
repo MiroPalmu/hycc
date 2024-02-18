@@ -191,7 +191,8 @@ struct tokenize_state {
 
     sstd::ownership<std::u8string> source_ownership;
 
-    std::size_t current_row = 0;
+    /// "Virtual newline" one first row increments the first row to be 1.
+    std::size_t current_row = 1;
     /// "Virtual newline" one first row is on column 0.
     std::size_t current_column = 1;
 
