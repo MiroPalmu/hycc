@@ -353,19 +353,28 @@ int main() {
         }
     };
 
-    "operators are not concatted"_test = [] {
+    "operators are not concatted, but maximally munched"_test = [] {
         using namespace hycc;
 
         auto source_code1 = source_code{ std::u8string{ u8"!#%&+-&<=>?\\^|~$@" } };
 
         const auto tokens1 = tokenize(source_code1);
-        expect(tokens1.size() == 17);
-        const auto corrects = std::u8string{ u8"!#%&+-&<=>?\\^|~$@" };
-        for (const auto [i_s, c] : corrects | std::views::enumerate) {
-            const auto i = static_cast<std::size_t>(i_s);
-
-            expect_token({ token_type::operator_token, std::u8string{ c }, 0, i + 1 }, tokens1[i]);
-        }
+        expect(tokens1.size() == 15);
+        expect_token({ token_type::operator_token, u8"!", 0, 1 }, tokens1[0]);
+        expect_token({ token_type::operator_token, u8"#", 0, 2 }, tokens1[1]);
+        expect_token({ token_type::operator_token, u8"%", 0, 3 }, tokens1[2]);
+        expect_token({ token_type::operator_token, u8"&", 0, 4 }, tokens1[3]);
+        expect_token({ token_type::operator_token, u8"+", 0, 5 }, tokens1[4]);
+        expect_token({ token_type::operator_token, u8"-", 0, 6 }, tokens1[5]);
+        expect_token({ token_type::operator_token, u8"&", 0, 7 }, tokens1[6]);
+        expect_token({ token_type::operator_token, u8"<=>", 0, 8 }, tokens1[7]);
+        expect_token({ token_type::operator_token, u8"?", 0, 11 }, tokens1[8]);
+        expect_token({ token_type::operator_token, u8"\\", 0, 12 }, tokens1[9]);
+        expect_token({ token_type::operator_token, u8"^", 0, 13 }, tokens1[10]);
+        expect_token({ token_type::operator_token, u8"|", 0, 14 }, tokens1[11]);
+        expect_token({ token_type::operator_token, u8"~", 0, 15 }, tokens1[12]);
+        expect_token({ token_type::operator_token, u8"$", 0, 16 }, tokens1[13]);
+        expect_token({ token_type::operator_token, u8"@", 0, 17 }, tokens1[14]);
     };
 
     "idnentifier tokens are tokenized"_test = [] {
@@ -529,5 +538,113 @@ last line*/)" } };
             const auto c8 = static_cast<char8_t>(c);
             expect_token({ token_type::error, std::u8string{ c8 }, 0, i + 1 }, tokens1[i]);
         }
+    };
+
+    "Tokens are maximally munched"_test = [] {
+        using namespace hycc;
+
+        auto source_code1  = source_code{ std::u8string{ u8"a+b" } };
+        const auto tokens1 = tokenize(source_code1);
+
+        expect(tokens1.size() == 3);
+        const auto N1 = source_code1.sv().size();
+        expect_token({ token_type::identifier, u8"a", 0, 1 }, tokens1[0]);
+        expect_token({ token_type::operator_token, u8"+", 0, 2 }, tokens1[1]);
+        expect_token({ token_type::identifier, u8"b", 0, N1 }, tokens1[2]);
+
+        auto source_code2  = source_code{ std::u8string{ u8"a+++b" } };
+        const auto tokens2 = tokenize(source_code2);
+
+        expect(tokens2.size() == 4);
+        const auto N2 = source_code2.sv().size();
+        expect_token({ token_type::identifier, u8"a", 0, 1 }, tokens2[0]);
+        expect_token({ token_type::operator_token, u8"++", 0, 2 }, tokens2[1]);
+        expect_token({ token_type::operator_token, u8"+", 0, 4 }, tokens2[2]);
+        expect_token({ token_type::identifier, u8"b", 0, N2 }, tokens2[3]);
+
+        auto source_code3  = source_code{ std::u8string{ u8"a++-++b" } };
+        const auto tokens3 = tokenize(source_code3);
+
+        expect(tokens3.size() == 5);
+        const auto N3 = source_code3.sv().size();
+        expect_token({ token_type::identifier, u8"a", 0, 1 }, tokens3[0]);
+        expect_token({ token_type::operator_token, u8"++", 0, 2 }, tokens3[1]);
+        expect_token({ token_type::operator_token, u8"-", 0, 4 }, tokens3[2]);
+        expect_token({ token_type::operator_token, u8"++", 0, 5 }, tokens3[3]);
+        expect_token({ token_type::identifier, u8"b", 0, N3 }, tokens3[4]);
+
+        auto source_code4  = source_code{ std::u8string{ u8"a+++++b" } };
+        const auto tokens4 = tokenize(source_code4);
+
+        expect(tokens4.size() == 5);
+        const auto N4 = source_code4.sv().size();
+        expect_token({ token_type::identifier, u8"a", 0, 1 }, tokens4[0]);
+        expect_token({ token_type::operator_token, u8"++", 0, 2 }, tokens4[1]);
+        expect_token({ token_type::operator_token, u8"++", 0, 4 }, tokens4[2]);
+        expect_token({ token_type::operator_token, u8"+", 0, 6 }, tokens4[3]);
+        expect_token({ token_type::identifier, u8"b", 0, N4 }, tokens4[4]);
+
+        auto source_code5  = source_code{ std::u8string{ u8"a+++/* saving comment */++b" } };
+        const auto tokens5 = tokenize(source_code5);
+
+        expect(tokens5.size() == 5);
+        const auto N5 = source_code5.sv().size();
+        expect_token({ token_type::identifier, u8"a", 0, 1 }, tokens5[0]);
+        expect_token({ token_type::operator_token, u8"++", 0, 2 }, tokens5[1]);
+        expect_token({ token_type::operator_token, u8"+", 0, 4 }, tokens5[2]);
+        expect_token({ token_type::operator_token, u8"++", 0, 25 }, tokens5[3]);
+        expect_token({ token_type::identifier, u8"b", 0, N5 }, tokens5[4]);
+
+    "all tokens are regonized"_test = [] {
+        using namespace hycc;
+
+        auto source_code1 = source_code{ std::u8string{
+            u8"<<=>>=<=>&=^=|=->++--||&&+=-=*=/=%=<<>><= >===!=!#%&+-/< = >?\\^|~$@" } };
+
+        const auto tokens1 = tokenize(source_code1);
+        expect(tokens1.size() == 42) << "got: " << tokens1.size();
+
+        expect_token({ token_type::operator_token, u8"<<=", 0, 1 }, tokens1[0]);
+        expect_token({ token_type::operator_token, u8">>=", 0, 4 }, tokens1[1]);
+        expect_token({ token_type::operator_token, u8"<=>", 0, 7 }, tokens1[2]);
+        expect_token({ token_type::operator_token, u8"&=", 0, 10 }, tokens1[3]);
+        expect_token({ token_type::operator_token, u8"^=", 0, 12 }, tokens1[4]);
+        expect_token({ token_type::operator_token, u8"|=", 0, 14 }, tokens1[5]);
+        expect_token({ token_type::operator_token, u8"->", 0, 16 }, tokens1[6]);
+        expect_token({ token_type::operator_token, u8"++", 0, 18 }, tokens1[7]);
+        expect_token({ token_type::operator_token, u8"--", 0, 20 }, tokens1[8]);
+        expect_token({ token_type::operator_token, u8"||", 0, 22 }, tokens1[9]);
+        expect_token({ token_type::operator_token, u8"&&", 0, 24 }, tokens1[10]);
+        expect_token({ token_type::operator_token, u8"+=", 0, 26 }, tokens1[11]);
+        expect_token({ token_type::operator_token, u8"-=", 0, 28 }, tokens1[12]);
+        expect_token({ token_type::operator_token, u8"*=", 0, 30 }, tokens1[13]);
+        expect_token({ token_type::operator_token, u8"/=", 0, 32 }, tokens1[14]);
+        expect_token({ token_type::operator_token, u8"%=", 0, 34 }, tokens1[15]);
+        expect_token({ token_type::operator_token, u8"<<", 0, 36 }, tokens1[16]);
+        expect_token({ token_type::operator_token, u8">>", 0, 38 }, tokens1[17]);
+        expect_token({ token_type::operator_token, u8"<=", 0, 40 }, tokens1[18]);
+        expect_token({ token_type::whitespace, u8" ", 0, 42 }, tokens1[19]);
+        expect_token({ token_type::operator_token, u8">=", 0, 43 }, tokens1[20]);
+        expect_token({ token_type::operator_token, u8"==", 0, 45 }, tokens1[21]);
+        expect_token({ token_type::operator_token, u8"!=", 0, 47 }, tokens1[22]);
+        expect_token({ token_type::operator_token, u8"!", 0, 49 }, tokens1[23]);
+        expect_token({ token_type::operator_token, u8"#", 0, 50 }, tokens1[24]);
+        expect_token({ token_type::operator_token, u8"%", 0, 51 }, tokens1[25]);
+        expect_token({ token_type::operator_token, u8"&", 0, 52 }, tokens1[26]);
+        expect_token({ token_type::operator_token, u8"+", 0, 53 }, tokens1[27]);
+        expect_token({ token_type::operator_token, u8"-", 0, 54 }, tokens1[28]);
+        expect_token({ token_type::operator_token, u8"/", 0, 55 }, tokens1[29]);
+        expect_token({ token_type::operator_token, u8"<", 0, 56 }, tokens1[30]);
+        expect_token({ token_type::whitespace, u8" ", 0, 57 }, tokens1[31]);
+        expect_token({ token_type::operator_token, u8"=", 0, 58 }, tokens1[32]);
+        expect_token({ token_type::whitespace, u8" ", 0, 59 }, tokens1[33]);
+        expect_token({ token_type::operator_token, u8">", 0, 60 }, tokens1[34]);
+        expect_token({ token_type::operator_token, u8"?", 0, 61 }, tokens1[35]);
+        expect_token({ token_type::operator_token, u8"\\", 0, 62 }, tokens1[36]);
+        expect_token({ token_type::operator_token, u8"^", 0, 63 }, tokens1[37]);
+        expect_token({ token_type::operator_token, u8"|", 0, 64 }, tokens1[38]);
+        expect_token({ token_type::operator_token, u8"~", 0, 65 }, tokens1[39]);
+        expect_token({ token_type::operator_token, u8"$", 0, 66 }, tokens1[40]);
+        expect_token({ token_type::operator_token, u8"@", 0, 67 }, tokens1[41]);
     };
 }

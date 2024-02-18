@@ -403,8 +403,8 @@ using following format:
       -
       - :code:`semantic scope operator`
     * - operator token
-      -
-      - :code:`operator unit`
+      - define :code:`=...+` to be `maximally munched operator <https://en.wikipedia.org/wiki/Maximal_munch>`_
+      - :code:`+...*`
     * - error token
       - define class :code:`X` containing every character
       - :code:`X`

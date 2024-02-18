@@ -192,8 +192,7 @@ class type_node {
     static constexpr auto function_arguments_pattern =
         std::array{ token_pattern{ token_type::semantic_scope_operator, u8"(" } };
     static constexpr auto function_return_type_separator_pattern =
-        std::array{ token_pattern{ token_type::operator_token, u8"-" },
-                    token_pattern{ token_type::operator_token, u8">" } };
+        std::array{ token_pattern{ token_type::operator_token, u8"->" } };
     static constexpr auto const_pattern =
         std::array{ token_pattern{ token_type::identifier, u8"const" } };
     static constexpr auto pointer_pattern =

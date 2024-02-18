@@ -1,9 +1,11 @@
 #pragma once
 
 #include <algorithm>
+#include <array>
 #include <bits/ranges_base.h>
 #include <concepts>
 #include <cstddef>
+#include <functional>
 #include <iterator>
 #include <memory>
 #include <ranges>
@@ -194,15 +196,28 @@ struct tokenize_state {
     std::size_t current_column = 1;
 
     struct {
-        std::size_t row       = 0;
-        std::size_t column    = 0;
-        marker_type start_pos = nullptr;
+        std::size_t row;
+        std::size_t column;
+        marker_type start_pos;
     } cache;
 
     constexpr void set_cache() {
         cache.row       = current_row;
         cache.column    = current_column;
         cache.start_pos = current_pos;
+    }
+
+    constexpr auto cache_as_sv(this auto&& self) -> std::u8string_view {
+        return std::u8string_view{ self.cache.start_pos, self.current_pos };
+    }
+
+    constexpr auto potential_next_cache_as_sv(this auto&& self) -> std::u8string_view {
+        const auto end_of_potential_cache = [&] {
+            auto temp = self.current_pos;
+            std::ranges::advance(temp, 2, self.source_end);
+            return temp;
+        }();
+        return std::u8string_view{ self.cache.start_pos, end_of_potential_cache };
     }
 
     constexpr void tokenize_cache(const token_type type) {
@@ -213,7 +228,8 @@ struct tokenize_state {
     [[nodiscard]] constexpr tokenize_state(source_code& source)
         : current_pos{ source.sv().begin() },
           source_end{ source.sv().end() },
-          source_ownership{ source.get_ownership_of_code() } {}
+          source_ownership{ source.get_ownership_of_code() },
+          cache{ current_row, current_column, current_pos } {}
 
     // Advances until current_pos is at \n or at last character of source.
     constexpr void skip_line() {
@@ -254,6 +270,56 @@ struct tokenize_state {
             ++current_column;
     }
 };
+
+static constexpr const auto all_possible_tokens = [] {
+    using namespace std::literals;
+    return std::array{ // 3 char
+                       u8"<<="sv,
+                       u8">>="sv,
+                       u8"<=>"sv,
+                       // 2 char
+                       u8"&="sv,
+                       u8"^="sv,
+                       u8"|="sv,
+                       u8"->"sv,
+                       u8"++"sv,
+                       u8"--"sv,
+                       u8"||"sv,
+                       u8"&&"sv,
+                       u8"+="sv,
+                       u8"-="sv,
+                       u8"*="sv,
+                       u8"/="sv,
+                       u8"%="sv,
+                       u8"<<"sv,
+                       u8">>"sv,
+                       u8"<="sv,
+                       u8">="sv,
+                       u8"=="sv,
+                       u8"!="sv,
+                       // 1 char
+                       u8"!"sv,
+                       u8"#"sv,
+                       u8"%"sv,
+                       u8"&"sv,
+                       u8"+"sv,
+                       u8"-"sv,
+                       u8"/"sv,
+                       u8"<"sv,
+                       u8"="sv,
+                       u8">"sv,
+                       u8"?"sv,
+                       u8"\\"sv,
+                       u8"^"sv,
+                       u8"|"sv,
+                       u8"~"sv,
+                       u8"$"sv,
+                       u8"@"sv
+    };
+}();
+
+static constexpr auto longest_operator =
+    std::ranges::max(all_possible_tokens, {}, [](const auto sv) { return sv.size(); });
 
 [[nodiscard]] constexpr auto tokenize(source_code& source) -> std::vector<token> {
     // Construct a state pattern matcher:
@@ -389,15 +455,31 @@ struct tokenize_state {
 
     struct operator_token_t {
         bool next_perdicate_is_false = false;
+
+        void set_next_perdicate_is_false(const tokenize_state& state) {
+            const auto next_cache_would_be_valid =
+                state.potential_next_cache_as_sv().size() == 1
+                or std::ranges::contains(all_possible_tokens, state.potential_next_cache_as_sv());
+
+            const auto want_to_munch_more =
+                state.cache_as_sv().size() < std::ranges::size(longest_operator);
+
+            next_perdicate_is_false = not(want_to_munch_more and next_cache_would_be_valid);
+        }
+
         auto operator()(predicate_tag, const tokenize_state& state) -> bool {
             if (next_perdicate_is_false) return false;
+
             return classify_char(*state.current_pos) == char_class::operator_unit;
         }
         auto operator()(begin_tag, tokenize_state& state) {
-            next_perdicate_is_false = true;
             state.set_cache();
+
+            set_next_perdicate_is_false(state);
         }
-        auto operator()(continuation_tag, tokenize_state&) {}
+        auto operator()(continuation_tag, tokenize_state& state) {
+            set_next_perdicate_is_false(state);
+        }
 
         auto operator()(end_tag, tokenize_state& state) {
             next_perdicate_is_false = false;
