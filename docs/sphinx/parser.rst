@@ -115,18 +115,19 @@ Contracts
 
 Pre
     - next unparsed tokens are in form:
-        - mix of identifier tokens and semantic scope operator :code:`:` pairs
-        - until not
+        - identifier tokens or semantic scope operator :code:`:`
+        - until not or identifier :code:`operator` followed by operator token
 
 Properties
 """"""""""
 
-List of ordered identifier tokens and scope resolution operators.
+- list of ordered identifier tokens and scope resolution operators
+- potential operator after :code:`operator` identifier
 
 Actions
 """""""
 
-- match :code:`single` pattern until end of identifier
+- match :code:`single` pattern until end of identifier or :code:`identifier`
 - give syntax error if the list is empty
 
 Patterns
@@ -144,12 +145,20 @@ Scope resolution operator
         - identifier token
     - actions:
         - add matched identifier token to list of identifier tokens
+        - if matched identifier is :code:`operator`:
+            - match one operator token
+            - store matched operator
+            - stop matching
 
 Unqualified identifier
     - pattern:
         - identifier token
     - actions:
         - add matched identifier token to list of identifier tokens
+        - if matched identifier is :code:`operator`:
+            - match one operator token
+            - store matched operator
+            - stop matching
 
 End of identifier
     - pattern:

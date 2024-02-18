@@ -38,8 +38,26 @@ int main() {
     };
 
     
-    "identifier_node gives syntax error :: not followed with identifier token"_test = [] {
+    "identifier_node gives syntax error when :: is not followed with identifier token"_test = [] {
         auto source       = source_code(u8"a :: b :: c :: ");
+        const auto tokens = tokenize(source);
+        auto parser       = parser_t{ tokens };
+        auto id           = ast::identifier_node{};
+
+        expect(throws<hycc::syntax_error>([&] { id.push(parser); }));
+    };
+
+    "identifier_node gives syntax error when operator is not followed by operator token [part 1]"_test = [] {
+        auto source       = source_code(u8"operator a");
+        const auto tokens = tokenize(source);
+        auto parser       = parser_t{ tokens };
+        auto id           = ast::identifier_node{};
+
+        expect(throws<hycc::syntax_error>([&] { id.push(parser); }));
+    };
+
+    "identifier_node gives syntax error when operator is not followed by operator token [part 2]"_test = [] {
+        auto source       = source_code(u8"a::b::operator a");
         const auto tokens = tokenize(source);
         auto parser       = parser_t{ tokens };
         auto id           = ast::identifier_node{};
@@ -107,6 +125,60 @@ int main() {
         expect(id3 == id3);
         expect(id1 != id2);
         expect(id1 != id3);
+        expect(id2 != id3);
+    };
+
+    "identifier_node equality depends on potential operator part"_test = [] {
+        auto source1       = source_code(u8"a::operator += ()");
+        const auto tokens1 = tokenize(source1);
+        auto parser1       = parser_t{ tokens1 };
+        auto id1           = ast::identifier_node{};
+        id1.push(parser1);
+
+        auto source2       = source_code(u8"a::operator -= ()");
+        const auto tokens2 = tokenize(source2);
+        auto parser2       = parser_t{ tokens2 };
+        auto id2           = ast::identifier_node{};
+        id2.push(parser2);
+
+        auto source3       = source_code(u8"a::operator += b::c");
+        const auto tokens3 = tokenize(source3);
+        auto parser3       = parser_t{ tokens3 };
+        auto id3           = ast::identifier_node{};
+        id3.push(parser3);
+
+        expect(id1 == id1);
+        expect(id2 == id2);
+        expect(id3 == id3);
+        expect(id1 != id2);
+        expect(id1 == id3);
+        expect(id2 != id3);
+    };
+
+    "identifier_node equality works when operator part matches"_test = [] {
+        auto source1       = source_code(u8"a::operator<=> ()");
+        const auto tokens1 = tokenize(source1);
+        auto parser1       = parser_t{ tokens1 };
+        auto id1           = ast::identifier_node{};
+        id1.push(parser1);
+
+        auto source2       = source_code(u8"b::operator<=>:  )");
+        const auto tokens2 = tokenize(source2);
+        auto parser2       = parser_t{ tokens2 };
+        auto id2           = ast::identifier_node{};
+        id2.push(parser2);
+
+        auto source3       = source_code(u8"a::operator<=>: ");
+        const auto tokens3 = tokenize(source3);
+        auto parser3       = parser_t{ tokens3 };
+        auto id3           = ast::identifier_node{};
+        id3.push(parser3);
+
+        expect(id1 == id1);
+        expect(id2 == id2);
+        expect(id3 == id3);
+        expect(id1 != id2);
+        expect(id1 == id3);
         expect(id2 != id3);
     };
 }

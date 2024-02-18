@@ -59,8 +59,8 @@ struct scope_resolution_operator {};
 using identifier_unit = std::variant<scope_resolution_operator, token>;
 
 class identifier_node {
-
     std::vector<identifier_unit> identifier_units_ = {};
+    std::optional<token> operator_token_           = {};
 
     constexpr void match_single_pattern_until_end(parser_t& parser);
 
@@ -77,27 +77,31 @@ class identifier_node {
     [[nodiscard]] friend constexpr bool operator==(const identifier_node& lhs,
                                                    const identifier_node& rhs) noexcept {
         if (lhs.identifier_units_.size() != rhs.identifier_units_.size()) return false;
-        namespace rv = std::ranges::views;
-        return std::ranges::all_of(
-            rv::zip(lhs.identifier_units_, rhs.identifier_units_)
-                | rv::transform([](const auto& x) {
-                      const auto l = std::get<0>(x);
-                      const auto r = std::get<1>(x);
-                      if (std::holds_alternative<scope_resolution_operator>(l)
-                          and std::holds_alternative<scope_resolution_operator>(r)) {
-                          // Both are scope resolution operators.
-                          return true;
-                      } else if (std::holds_alternative<scope_resolution_operator>(l)
-                                 or std::holds_alternative<scope_resolution_operator>(r)) {
-                          // Only other is.
-                          return false;
-                      }
-                      // Both are tokens and assumend to be a identifiers.
-                      const auto l_t = std::get<token>(l);
-                      const auto r_t = std::get<token>(r);
-                      return l_t.sv_in_source == r_t.sv_in_source;
-                  }),
-            std::identity{});
+        namespace rv               = std::ranges::views;
+        auto token_to_string       = [](const token& t) { return std::u8string{ t.sv_in_source }; };
+        const auto operators_match = lhs.operator_token_.transform(token_to_string)
+                                     == rhs.operator_token_.transform(token_to_string);
+        return operators_match
+               and std::ranges::all_of(
+                   rv::zip(lhs.identifier_units_, rhs.identifier_units_)
+                       | rv::transform([](const auto& x) {
+                             const auto l = std::get<0>(x);
+                             const auto r = std::get<1>(x);
+                             if (std::holds_alternative<scope_resolution_operator>(l)
+                                 and std::holds_alternative<scope_resolution_operator>(r)) {
+                                 // Both are scope resolution operators.
+                                 return true;
+                             } else if (std::holds_alternative<scope_resolution_operator>(l)
+                                        or std::holds_alternative<scope_resolution_operator>(r)) {
+                                 // Only other is.
+                                 return false;
+                             }
+                             // Both are tokens and assumend to be a identifiers.
+                             const auto l_t = std::get<token>(l);
+                             const auto r_t = std::get<token>(r);
+                             return l_t.sv_in_source == r_t.sv_in_source;
+                         }),
+                   std::identity{});
     }
 
   private:
@@ -106,6 +110,7 @@ class identifier_node {
         std::array{ token_pattern{ token_type::semantic_scope_operator, u8":" },
                     token_pattern{ token_type::semantic_scope_operator, u8":" } };
     static constexpr auto identifier_pattern = std::array{ token_type::identifier };
+    static constexpr auto operator_pattern   = std::array{ token_type::operator_token };
     ////////////////////////////////////////////////////////////////////////////////////////////////
 };
 
@@ -258,18 +263,24 @@ class class_scope : public scope_node {};
 // Now that all classes are fully defined we can use them in members.
 
 constexpr void identifier_node::match_single_pattern_until_end(parser_t& parser) {
-    auto stop_signal = false;
-    while (not stop_signal) {
-        auto matched = parser_t::matched_type{};
-        if ((matched = parser.match_and_consume(scope_resolution_operator_pattern))) {
-            identifier_units_.push_back(scope_resolution_operator{});
-            matched = parser.match_and_consume(identifier_pattern);
-            if (not matched) parser.throw_syntax_error();
-            identifier_units_.push_back(matched.value().front());
-        } else if ((matched = parser.match_and_consume(identifier_pattern))) {
-            identifier_units_.push_back(matched.value().front());
-        } else {
-            stop_signal = true;
+    while (true) {
+        const auto scope_resolution = parser.match_and_consume(scope_resolution_operator_pattern);
+        if (scope_resolution) { identifier_units_.push_back(scope_resolution_operator{}); }
+
+        const auto identifier = parser.match_and_consume(identifier_pattern);
+
+        if (scope_resolution and not identifier) parser.throw_syntax_error();
+
+        if (not identifier) break;
+
+        identifier_units_.push_back(identifier.value().front());
+
+        if (identifier.value().front().sv_in_source == u8"operator") {
+            // Found `operator`.
+            const auto op = parser.match_and_consume(operator_pattern);
+            if (not op) parser.throw_syntax_error();
+            operator_token_ = op.value().front();
+            break;
         }
     }
 }
